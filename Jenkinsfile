@@ -9,6 +9,7 @@ pipeline {
             steps {
                 script {
                     echo "Running Terraform to provision droplet..."
+                    sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     sh 'terraform init'
                     sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     DROPLET_PUBLIC_IP = sh(
@@ -25,7 +26,7 @@ pipeline {
                     echo "Configuring server with Ansible..."
                     sshagent(['ansible-server-key']) {
                         sh """
-                        ansible-playbook deploy-java.yaml -i hosts -e "ansible_host=${DROPLET_PUBLIC_IP}
+                        ansible-playbook deploy-java.yaml -i hosts -e "ansible_host=${DROPLET_PUBLIC_IP}"
                         """
                     }
                 }
