@@ -67,3 +67,49 @@
       ufw:
         state: enabled
         policy: allow
+
+- name: Install Node.js, npm, and Playwright
+  hosts: all
+  tasks:
+    - name: Install curl
+      apt:
+        name: curl
+        state: present
+
+    - name: Add Node.js repository
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      args:
+        creates: /etc/apt/sources.list.d/nodesource.list
+
+    - name: Install Node.js and npm
+      apt:
+        pkg:
+          - nodejs
+        state: present
+
+    - name: Verify Node.js installation
+      command: node --version
+      register: node_version
+
+    - debug:
+        msg: "Node.js successfully installed. Version: {{ node_version.stdout }}"
+
+    - name: Verify npm installation
+      command: npm --version
+      register: npm_version
+
+    - debug:
+        msg: "npm successfully installed. Version: {{ npm_version.stdout }}"
+
+    - name: Install Playwright globally
+      npm:
+        name: playwright
+        global: yes
+
+    - name: Verify Playwright installation
+      command: playwright --version
+      register: playwright_version
+
+    - debug:
+        msg: "Playwright successfully installed. Version: {{ playwright_version.stdout }}"
