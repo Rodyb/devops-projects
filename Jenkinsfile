@@ -4,6 +4,7 @@ pipeline {
         IMAGE_NAME = "java-application"
         DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
         DOCKER_REGISTRY = "docker.io"
+        NEXUS_URL = "157.245.75.110:8082"
     }
     agent any
     stages {
@@ -94,18 +95,20 @@ pipeline {
 //                 }
 //             }
 //         }
-//         stage('Push Docker Image to Nexus') {
-//             steps {
-//                 script {
-//                     echo "Pushing the Docker image to Nexus..."
-//                     sh """
-//                         docker login -u ${NEXUS_CREDENTIALS_USR} -p ${NEXUS_CREDENTIALS_PSW} ${NEXUS_URL}
-//                         docker tag ${IMAGE_NAME} ${NEXUS_URL}/repository/${NEXUS_REPO}/${IMAGE_NAME}
-//                         docker push ${NEXUS_URL}/repository/${NEXUS_REPO}/${IMAGE_NAME}
-//                     """
-//                 }
-//             }
-//         }
+        stage('Push Docker Image to Nexus') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                script {
+                    echo "Pushing the Docker image to Nexus..."
+                    sh """
+                        echo "Blowen85_" | docker login -u admin --password-stdin http://157.245.75.110:8082
+                        docker tag $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+    }
 //         stage('Cleanup') {
 //             steps {
 //                 script {
