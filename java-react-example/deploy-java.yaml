@@ -1,17 +1,27 @@
 ---
-- name: Pre-check and prepare for package installation
+- name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
-    - name: Kill any existing apt/dpkg processes
+    - name: Kill conflicting apt/dpkg processes
       shell: |
         ps aux | grep '[a]pt' | awk '{print $2}' | xargs -r kill -9
         ps aux | grep '[d]pkg' | awk '{print $2}' | xargs -r kill -9
       ignore_errors: yes
 
-    - name: Remove apt/dpkg lock files
+    - name: Remove apt lock files
       file:
         path: /var/lib/dpkg/lock-frontend
         state: absent
+      ignore_errors: yes
+
+    - name: Remove dpkg lock file
+      file:
+        path: /var/lib/dpkg/lock
+        state: absent
+      ignore_errors: yes
+
+    - name: Ensure dpkg is not in a broken state
+      shell: dpkg --configure -a
       ignore_errors: yes
 
 - name: Install Java and Gradle
@@ -29,7 +39,7 @@
           - openjdk-17-jdk
           - openjdk-17-jre
       retries: 3
-      delay: 10
+      delay: 15
     - name: Install dependencies for Gradle
       apt:
         pkg:
@@ -104,7 +114,7 @@
           - nodejs
         state: present
       retries: 3
-      delay: 10
+      delay: 15
 
     - name: Verify Node.js installation
       command: node --version
