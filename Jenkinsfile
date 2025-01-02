@@ -3,8 +3,6 @@ pipeline {
         DROPLET_PUBLIC_IP = ""
         IMAGE_NAME = "java-application"
         DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
-        DOCKER_USERNAME = credentials('dockerhub-username')
-        DOCKER_PASSWORD = credentials('dockerhub-password')
         DOCKER_REGISTRY = "docker.io"
     }
     agent any
