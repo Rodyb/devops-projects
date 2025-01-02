@@ -27,6 +27,7 @@ pipeline {
                     sshagent(['jenkins-server-ssh']) {
                         sh """
                            sleep 30
+                           ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} pwd
                            ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
                         """
                     }
