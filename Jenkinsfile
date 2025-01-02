@@ -9,6 +9,7 @@ pipeline {
             steps {
                 script {
                     echo "Running Terraform to provision droplet..."
+                    sh 'terraform init'
                     sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     DROPLET_PUBLIC_IP = sh(
                         script: "terraform output droplet_ip",
