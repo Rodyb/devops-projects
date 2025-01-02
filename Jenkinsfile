@@ -90,7 +90,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                 script {
-                    dir("playwright") {
+                    dir("pw-tests") {
                         echo "Running Playwright tests..."
                         sh """
                             ls
