@@ -5,29 +5,31 @@ pipeline {
     }
     agent any
     stages {
-         stage('Provision Droplet') {
-            steps {
-                script {
-                    echo "Running Terraform to provision droplet..."
-                    sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
-                    sh 'terraform init'
-                    sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
-                    DROPLET_PUBLIC_IP = sh(
-                        script: "terraform output droplet_ip",
-                        returnStdout: true
-                    ).trim()
-                    echo "Droplet IP: ${DROPLET_PUBLIC_IP}"
-                }
-            }
-        }
+//          stage('Provision Droplet') {
+//             steps {
+//                 script {
+//                     echo "Running Terraform to provision droplet..."
+//                     sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+//                     sh 'terraform init'
+//                     sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+//                     DROPLET_PUBLIC_IP = sh(
+//                         script: "terraform output droplet_ip",
+//                         returnStdout: true
+//                     ).trim()
+//                     echo "Droplet IP: ${DROPLET_PUBLIC_IP}"
+//                 }
+//             }
+//         }
         stage('Configure Environment') {
             steps {
                 script {
                     echo "Configuring server with Ansible..."
                     sshagent(['ansible-server-key']) {
-                        sh """
-                           ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
-                        """
+                           sh 'ssh-add -l'
+
+//                         sh """
+//                            ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
+//                         """
                     }
                 }
             }
