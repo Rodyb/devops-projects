@@ -20,18 +20,19 @@ pipeline {
                 }
             }
         }
-//         stage('Configure Environment') {
-//             steps {
-//                 script {
-//                     echo "Configuring server with Ansible..."
-//                     sshagent(['ansible-server-key']) {
-//                         sh """
-//                            ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
-//                         """
-//                     }
-//                 }
-//             }
-//         }
+        stage('Configure Environment') {
+            steps {
+                script {
+                    echo "Configuring server with Ansible..."
+                    sshagent(['ansible-server-key']) {
+                        sh """
+                           sleep 15
+                           ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
+                        """
+                    }
+                }
+            }
+        }
 //        stage('Build Application with Gradle') {
 //             steps {
 //                 script {
