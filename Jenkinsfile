@@ -24,7 +24,7 @@ pipeline {
             steps {
                 script {
                     echo "Configuring server with Ansible..."
-                    sshagent(['ansible-server-key']) {
+                    sshagent(['jenkins-server-ssh']) {
                         sh """
                             sleep 30
                            ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} pwd
