@@ -93,7 +93,6 @@ pipeline {
                     dir("playwright") {
                         echo "Running Playwright tests..."
                         sh """
-                            pwd
                             ls
                             docker build -t playwright .
                             docker run --rm \
