@@ -26,18 +26,7 @@ pipeline {
                     echo "Configuring server with Ansible..."
                     sshagent(['ansible-server-key']) {
                         sh """
-                       for i in {1..20}; do
-                                  if nc -zv ${DROPLET_PUBLIC_IP} 22; then
-                                      echo "SSH is ready!"
-                                      break
-                                  fi
-                                  echo "SSH not ready, retrying in 10 seconds... (Attempt $i)"
-                                  sleep 10
-                                  if [ $i -eq 20 ]; then
-                                      echo "SSH still not ready after 20 attempts, exiting."
-                                      exit 1
-                                  fi
-                              done
+                            sleep 30
                            ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} pwd
 //                            ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
                         """
