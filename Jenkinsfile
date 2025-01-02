@@ -1,6 +1,7 @@
 pipeline {
    environment {
         DROPLET_PUBLIC_IP = ""
+        IMAGE_NAME = "java-application"
         DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
     }
     agent any
@@ -34,26 +35,26 @@ pipeline {
                 }
             }
         }
-//        stage('Build Application with Gradle') {
-//             steps {
-//                 script {
-//                     echo "Build app with Gradle"
-//                     sh """
-//                         gradle clean build
-//                     """
-//                 }
-//             }
-//         }
-//         stage('Build Docker Image') {
-//             steps {
-//                 script {
-//                     echo "Building the Docker image..."
-//                     sh """
-//                         docker build -t ${IMAGE_NAME} .
-//                     """
-//                 }
-//             }
-//         }
+       stage('Build Application with Gradle') {
+            steps {
+                script {
+                    echo "Build app with Gradle"
+                    sh """
+                        gradle clean build
+                    """
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "Building the Docker image..."
+                    sh """
+                        docker build -t ${IMAGE_NAME} .
+                    """
+                }
+            }
+        }
 //         stage('Run Application in Docker') {
 //             steps {
 //                 script {
