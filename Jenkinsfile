@@ -3,6 +3,9 @@ pipeline {
         DROPLET_PUBLIC_IP = ""
         IMAGE_NAME = "java-application"
         DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
+        DOCKER_USERNAME = credentials('dockerhub-username')
+        DOCKER_PASSWORD = credentials('dockerhub-password')
+        DOCKER_REGISTRY = "docker.io"
     }
     agent any
     stages {
@@ -47,13 +50,32 @@ pipeline {
                 }
             }
         }
-        stage('Build Docker Image') {
+             stage('Docker Login') {
+                    steps {
+                        withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            script {
+                                sh '''
+                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                                '''
+                            }
+                        }
+                    }
+                }
+
+        stage('Login to Docker and build Docker image') {
             steps {
-                script {
-                    echo "Building the Docker image..."
-                    sh """
-                        docker build -t ${IMAGE_NAME} .
-                    """
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        dir("java-react-example") {
+                             echo "Building the Docker image..."
+                                sh """
+                                    echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                                    docker build -t ${IMAGE_NAME} .
+                                    docker build -t $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} .
+                                    docker push $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER}
+                                """
+                        }
+                    }
                 }
             }
         }

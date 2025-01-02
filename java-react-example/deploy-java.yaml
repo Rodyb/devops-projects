@@ -88,16 +88,20 @@
       apt:
         name: curl
         state: present
+      register: result
+      until: result is not failed
       retries: 5
-      delay: 10
+      delay: 5
 
     - name: Add Node.js repository
       shell: |
         curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
       args:
         creates: /etc/apt/sources.list.d/nodesource.list
+      register: result
+      until: result is not failed
       retries: 5
-      delay: 10
+      delay: 5
 
     - name: Install Node.js and npm
       apt:
