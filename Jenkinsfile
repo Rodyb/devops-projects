@@ -39,10 +39,10 @@ pipeline {
             steps {
                 script {
                     dir("java-react-example") {
-                    echo "Build app with Gradle"
-                    sh """
-                        gradle clean build
-                    """
+                     echo "Build app with Gradle"
+                        sh """
+                            gradle clean build
+                        """
                     }
                 }
             }
