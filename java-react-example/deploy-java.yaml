@@ -41,45 +41,29 @@
       retries: 5
       delay: 10
 
-    - name: Install Java
-      apt:
-        pkg:
-          - openjdk-17-jdk
-          - openjdk-17-jre
-      register: result
-      until: result is not failed
-      retries: 5
-      delay: 5
+- name: Install Docker
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Docker
+      yum:
+        name: docker
+        update_cache: yes
+        state: present
 
-    - name: Install dependencies for Gradle
-      apt:
-        pkg:
-          - wget
-          - unzip
-      retries: 5
-      delay: 10
+    - name: Start docker daemon
+      systemd:
+        name: docker
+        state: started
 
-    - name: Download Gradle 8
-      shell: |
-        wget https://services.gradle.org/distributions/gradle-8.2.1-bin.zip -O /tmp/gradle-8.2.1-bin.zip
-        unzip /tmp/gradle-8.2.1-bin.zip -d /opt/
-      args:
-        creates: /opt/gradle-8.2.1
-      retries: 5
-      delay: 10
-
-    - name: Create symbolic link for Gradle
-      file:
-        src: /opt/gradle-8.2.1/bin/gradle
-        dest: /usr/bin/gradle
-        state: link
-
-    - name: Verify Gradle installation
-      command: gradle --version
-      register: gradle_version
-
-    - debug:
-        msg: "Gradle successfully installed. Version info: {{ gradle_version.stdout }}"
+- name: Create new linux user
+  hosts: all
+  become: yes
+  tasks:
+    - name: Create new linux user
+      user:
+        name: rodyb
+        groups: docker
 
 - name: Install Node.js and npm
   hosts: all
