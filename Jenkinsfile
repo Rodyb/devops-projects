@@ -95,7 +95,7 @@ pipeline {
                         sh """
                               docker run --rm \
                               --env PLAYWRIGHT_BASE_URL=http://167.99.213.144:7071 \
-                              -v \$(pwd):/usr/src/app \
+                              -v playwright-volume:/usr/src/app \
                               rodybothe2/playwright3 npx playwright test tests/e2e/ccs.spec.ts
 
                         """
