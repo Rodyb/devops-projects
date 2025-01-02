@@ -48,18 +48,6 @@ pipeline {
                 }
             }
         }
-             stage('Docker Login') {
-                    steps {
-                        withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                            script {
-                                sh '''
-                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-                                '''
-                            }
-                        }
-                    }
-                }
-
         stage('Login to Docker and build Docker image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -68,7 +56,6 @@ pipeline {
                              echo "Building the Docker image..."
                                 sh """
                                     echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-                                    docker build -t ${IMAGE_NAME} .
                                     docker build -t $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} .
                                     docker push $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER}
                                 """
@@ -77,20 +64,25 @@ pipeline {
                 }
             }
         }
-//         stage('Run Application in Docker') {
-//             steps {
-//                 script {
-//                     echo "Starting the Docker container on the remote server..."
-//                     sshagent(['ansible-server-key']) {
-//                         sh """
-//                         ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} "
-//                             docker run -d -p 7071:7071 --name java-app ${IMAGE_NAME}
-//                         "
-//                         """
-//                     }
-//                 }
-//             }
-//         }
+    stage('Run Application in Docker') {
+        steps {
+            script {
+                echo "Starting the Docker container on the remote server..."
+                sshagent(['jenkins-server-ssh']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} "
+                        echo 'Logging in to Docker registry...'
+                        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin &&
+                        echo 'Pulling Docker image...' &&
+                        docker pull $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} &&
+                        echo 'Running Docker container...' &&
+                        docker run -d -p 7071:7071 --name java-app $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER}
+                    "
+                    """
+                }
+            }
+        }
+    }
 //         stage('Run Tests') {
 //             steps {
 //                 script {
