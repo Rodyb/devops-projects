@@ -66,6 +66,7 @@ pipeline {
         }
     stage('Run Application in Docker') {
         steps {
+            withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
             script {
                 echo "Starting the Docker container on the remote server..."
                 sshagent(['jenkins-server-ssh']) {
@@ -79,6 +80,7 @@ pipeline {
                         docker run -d -p 7071:7071 --name java-app $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER}
                     "
                     """
+                    }
                 }
             }
         }
