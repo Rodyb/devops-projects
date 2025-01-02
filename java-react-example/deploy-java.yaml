@@ -46,8 +46,10 @@
         pkg:
           - openjdk-17-jdk
           - openjdk-17-jre
+      register: result
+      until: result is not failed
       retries: 5
-      delay: 10
+      delay: 5
 
     - name: Install dependencies for Gradle
       apt:
@@ -101,8 +103,10 @@
       apt:
         name: nodejs
         state: present
+      register: result
+      until: result is not failed
       retries: 5
-      delay: 10
+      delay: 5
 
     - name: Verify Node.js installation
       command: node --version
