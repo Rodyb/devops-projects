@@ -124,7 +124,7 @@ pipeline {
 //                     sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
 //                 }
 //             }
-//         }
+        }
     }
 //     post {
 //         always {
@@ -134,4 +134,4 @@ pipeline {
 //             }
 //         }
 //     }
-// }
+}
