@@ -1,0 +1,69 @@
+---
+- name: Install Java and Gradle
+  hosts: all
+  tasks:
+    - name: Update apt repository and cache
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+
+    - name: Install Java
+      apt:
+        pkg:
+          - openjdk-17-jdk
+          - openjdk-17-jre
+
+    - name: Install dependencies for Gradle
+      apt:
+        pkg:
+          - wget
+          - unzip
+
+    - name: Download Gradle 8
+      shell: |
+        wget https://services.gradle.org/distributions/gradle-8.2.1-bin.zip -O /tmp/gradle-8.2.1-bin.zip
+        unzip /tmp/gradle-8.2.1-bin.zip -d /opt/
+      args:
+        creates: /opt/gradle-8.2.1
+
+    - name: Create symbolic link for Gradle
+      file:
+        src: /opt/gradle-8.2.1/bin/gradle
+        dest: /usr/bin/gradle
+        state: link
+
+    - name: Verify Gradle installation
+      command: gradle --version
+      register: gradle_version
+
+    - debug:
+        msg: "Gradle successfully installed. Version info: {{ gradle_version.stdout }}"
+
+- name: Create Linux User
+  hosts: all
+  tasks:
+    - name: Create linux-user group
+      group:
+        name: linux-user
+
+    - name: Create new Linux user
+      user:
+        name: linux-user
+        comment: Rody Admin
+        group: linux-user
+        create_home: yes
+
+- name: Configure Firewall and Open Port 7071
+  hosts: all
+  tasks:
+    - name: Allow port 7071 through UFW
+      ufw:
+        rule: allow
+        port: 7071
+        proto: tcp
+
+    - name: Enable UFW if not already enabled
+      ufw:
+        state: enabled
+        policy: allow
