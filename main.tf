@@ -74,8 +74,8 @@ resource "digitalocean_firewall" "app_firewall" {
 
   inbound_rule {
     protocol         = "tcp"
-    port_range       = "3000"
-    source_addresses = ["0.0.0.0/0", "::/0"] # Open port 3000 for the application
+    port_range       = "7071"
+    source_addresses = ["0.0.0.0/0", "::/0"] # Open port 7071 for the application
   }
 
   # Outbound rules

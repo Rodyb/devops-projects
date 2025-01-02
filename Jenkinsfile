@@ -22,7 +22,7 @@ pipeline {
                 }
             }
         }
-        stage('Configure Environment') {
+        stage('Configure droplet with Ansible') {
             steps {
                 script {
                     echo "Configuring server with Ansible..."
@@ -36,7 +36,7 @@ pipeline {
                 }
             }
         }
-       stage('Build Application with Gradle') {
+       stage('Build application with Gradle') {
             steps {
                 script {
                     dir("java-react-example") {
@@ -64,7 +64,7 @@ pipeline {
                 }
             }
         }
-    stage('Run Application in Docker') {
+    stage('Run application in Docker') {
         steps {
             withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
             script {
