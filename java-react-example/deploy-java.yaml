@@ -30,40 +30,56 @@
       shell: dpkg --configure -a
       ignore_errors: yes
 
-- name: Install Java and Gradle
+- name: Install Docker on Ubuntu
   hosts: all
+  become: yes
   tasks:
-    - name: Update apt repository and cache
+    - name: Update apt cache
       apt:
         update_cache: yes
         force_apt_get: yes
         cache_valid_time: 3600
-      retries: 5
-      delay: 10
-
-- name: Install Docker
-  hosts: all
-  become: yes
-  tasks:
-    - name: Install Docker
-      yum:
-        name: docker
-        update_cache: yes
+    - name: Install required dependencies
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
         state: present
 
-    - name: Start docker daemon
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        pkg:
+          - docker-ce
+        state: present
+
+    - name: Start and enable Docker service
       systemd:
         name: docker
         state: started
+        enabled: yes
 
-- name: Create new linux user
+- name: Create a new Linux user and add to the docker group
   hosts: all
   become: yes
   tasks:
-    - name: Create new linux user
+    - name: Create new Linux user
       user:
         name: rodyb
         groups: docker
+        append: yes
+        state: present
 
 - name: Install Node.js and npm
   hosts: all
