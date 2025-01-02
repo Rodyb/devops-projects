@@ -1,4 +1,19 @@
 ---
+- name: Pre-check and prepare for package installation
+  hosts: all
+  tasks:
+    - name: Kill any existing apt/dpkg processes
+      shell: |
+        ps aux | grep '[a]pt' | awk '{print $2}' | xargs -r kill -9
+        ps aux | grep '[d]pkg' | awk '{print $2}' | xargs -r kill -9
+      ignore_errors: yes
+
+    - name: Remove apt/dpkg lock files
+      file:
+        path: /var/lib/dpkg/lock-frontend
+        state: absent
+      ignore_errors: yes
+
 - name: Install Java and Gradle
   hosts: all
   tasks:
