@@ -93,11 +93,11 @@ pipeline {
                     dir("pw-tests") {
                         echo "Running Playwright tests..."
                         sh """
-                            ls
-                            docker build -t playwright .
-                            docker run --rm \
+                              docker run --rm \
                               --env PLAYWRIGHT_BASE_URL=http://167.99.213.144:7071 \
-                              playwright npx playwright test tests/e2e/ccs.spec.ts
+                              -v $(pwd):/usr/src/app \
+                              rodybothe2/playwright3 npx playwright test tests/e2e/ccs.spec.ts
+
                         """
 
                     }
