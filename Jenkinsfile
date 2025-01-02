@@ -26,8 +26,8 @@ pipeline {
                     echo "Configuring server with Ansible..."
                     sshagent(['ansible-server-key']) {
                         sh """
-                           ssh-keyscan -H ${DROPLET_PUBLIC_IP} >> ~/.ssh/known_hosts
                            sleep 15
+                           ssh-keyscan -H ${DROPLET_PUBLIC_IP} >> ~/.ssh/known_hosts
                            ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
                         """
                     }
