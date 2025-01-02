@@ -27,8 +27,6 @@ pipeline {
                     sshagent(['ansible-server-key']) {
                         sh """
                            ansible-playbook ./java-react-example/deploy-java.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP}"
-
-//                         ansible-playbook ./java-react-example/deploy-java.yaml -i hosts -e "ansible_host=${DROPLET_PUBLIC_IP}"
                         """
                     }
                 }
