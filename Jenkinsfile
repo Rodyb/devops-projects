@@ -93,6 +93,8 @@ pipeline {
                     dir("playwright") {
                         echo "Running Playwright tests..."
                         sh """
+                            pwd
+                            ls
                             docker build -t playwright .
                             docker run --rm \
                               --env PLAYWRIGHT_BASE_URL=http://167.99.213.144:7071 \
