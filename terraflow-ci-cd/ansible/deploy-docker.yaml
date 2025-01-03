@@ -1,6 +1,7 @@
 ---
 - name: Wait for service to be ready
   hosts: all
+  gather_facts: no
   tasks:
     - name: Wait for port 22 to become available
       ansible.builtin.wait_for:
@@ -9,6 +10,9 @@
         connect_timeout: 3
         delay: 3
         timeout: 30
+    - name: Gather facts after SSH is ready
+      setup:
+
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
