@@ -1,6 +1,7 @@
 ---
 - name: Pre-check and resolve apt lock issues
   hosts: all
+  gather_facts: no
   tasks:
     - name: Wait until port 22 is open
       wait_for:
@@ -18,6 +19,8 @@
       retries: 6                    # Retry up to 6 times
       delay: 10                     # Wait 10 seconds between retries
 
+    - name: Gather facts after SSH is ready
+      setup:
 #    - name: Stop unattended-upgrades service
 #      service:
 #        name: unattended-upgrades
