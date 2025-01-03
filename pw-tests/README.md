@@ -1,4 +1,4 @@
-## PLAYWRIGHT API & UI TESTS
+## PLAYWRIGHT API & UI TESTS.
 
 ## Local Environment.
 * To install Playwright locally `npm install`
