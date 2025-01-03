@@ -1,0 +1,64 @@
+pipeline {
+    environment {
+        DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
+    }
+    agent any
+    stages {
+        stage('Provision Droplet') {
+            steps {
+                script {
+                    dir("jenkins-agents") {
+                        echo "Running Terraform to provision droplet..."
+                        sh 'terraform init'
+                        sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+
+                        sh 'terraform output -json jenkins_agent_ips > agents.json'
+
+                        def agents = sh(script: "jq -r '.[]' agents.json", returnStdout: true).trim().split('\n')
+                        env.DROPLET_PUBLIC_IP_1 = agents[0]
+                        env.DROPLET_PUBLIC_IP_2 = agents[1]
+
+                        sh './generate_inventory.sh'
+                    }
+                }
+            }
+        }
+        stage('Configure Droplets with Ansible') {
+            steps {
+                script {
+                    dir("jenkins-agents") {
+                        echo "Configuring servers with Ansible..."
+                        sshagent(['jenkins-server-ssh']) {
+                            sh """
+                                sleep 30
+                                ssh -o StrictHostKeyChecking=no root@${env.DROPLET_PUBLIC_IP_1} pwd
+                                ssh -o StrictHostKeyChecking=no root@${env.DROPLET_PUBLIC_IP_2} pwd
+                                ansible-playbook -i ./ansible/inventory.ini ./ansible/playbook.yaml
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Commit Changes') {
+            steps {
+                script {
+                    dir("jenkins-agents") {
+                        echo "Committing changes to the repository..."
+
+                        sshagent(['git-credentials-id']) {
+                            sh """
+                                git config user.name "Jenkins Automation"
+                                git config user.email "jenkins@example.com"
+
+                                git add terraform.tfstate agents.json ansible/inventory.ini
+                                git commit -m "Update Terraform state and inventory after provisioning"
+                                git push origin main
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
