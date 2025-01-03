@@ -12,3 +12,4 @@ RUN npm ci
 
 RUN npx playwright install --with-deps
 
+COPY . .
