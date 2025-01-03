@@ -1,4 +1,8 @@
 ---
+- name: Wait for SSH availability
+  wait_for_connection:
+    delay: 10
+    timeout: 300
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
