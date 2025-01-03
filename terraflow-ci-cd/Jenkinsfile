@@ -33,6 +33,7 @@ pipeline {
                     sshagent(['jenkins-server-ssh']) {
                         sh """
                            ./terraflow-ci-cd/bla.sh ${DROPLET_PUBLIC_IP}
+                           sleep 5
                            ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} pwd
                            ansible-playbook ./terraflow-ci-cd/ansible/deploy-docker.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP} ansible_user=root"
                         """
@@ -119,8 +120,10 @@ pipeline {
         stage('Cleanup') {
             steps {
                 script {
+                    dir("terraflow-ci-cd"){
                     echo "Destroying droplet with Terraform..."
                     sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+                    }
                 }
             }
         }
@@ -128,8 +131,10 @@ pipeline {
     post {
         always {
             script {
+                dir("terraflow-ci-cd"){
                 echo "Pipeline finished. Cleaning up any residual resources."
                 sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+                }
             }
         }
     }
