@@ -30,6 +30,7 @@ pipeline {
             steps {
                 script {
                     echo "Configuring server with Ansible..."
+                    // the sleep was needed, I tried wait_for and wait_for_connection. Nothing worked
                     sshagent(['jenkins-server-ssh']) {
                         sh """
                            sleep 30

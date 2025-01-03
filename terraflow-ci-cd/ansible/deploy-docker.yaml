@@ -81,66 +81,6 @@
         append: yes
         state: present
 
-- name: Install Node.js and npm
-  hosts: all
-  tasks:
-    - name: Install curl
-      apt:
-        name: curl
-        state: present
-      register: result
-      until: result is not failed
-      retries: 5
-      delay: 5
-
-    - name: Add Node.js repository
-      shell: |
-        curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-      args:
-        creates: /etc/apt/sources.list.d/nodesource.list
-      register: result
-      until: result is not failed
-      retries: 5
-      delay: 5
-
-    - name: Install Node.js and npm
-      apt:
-        name: nodejs
-        state: present
-      register: result
-      until: result is not failed
-      retries: 5
-      delay: 5
-
-    - name: Verify Node.js installation
-      command: node --version
-      register: node_version
-
-    - debug:
-        msg: "Node.js successfully installed. Version: {{ node_version.stdout }}"
-
-    - name: Verify npm installation
-      command: npm --version
-      register: npm_version
-
-    - debug:
-        msg: "npm successfully installed. Version: {{ npm_version.stdout }}"
-
-- name: Install Playwright
-  hosts: all
-  tasks:
-    - name: Install Playwright globally
-      npm:
-        name: playwright
-        global: yes
-
-    - name: Verify Playwright installation
-      command: playwright --version
-      register: playwright_version
-
-    - debug:
-        msg: "Playwright successfully installed. Version: {{ playwright_version.stdout }}"
-
 - name: Create Linux User
   hosts: all
   tasks:
@@ -154,17 +94,3 @@
         comment: Rody Admin
         group: linux-user
         create_home: yes
-
-- name: Configure Firewall and Open Port 7071
-  hosts: all
-  tasks:
-    - name: Allow port 7071 through UFW
-      ufw:
-        rule: allow
-        port: 7071
-        proto: tcp
-
-    - name: Enable UFW if not already enabled
-      ufw:
-        state: enabled
-        policy: allow
