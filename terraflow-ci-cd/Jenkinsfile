@@ -32,6 +32,7 @@ pipeline {
                     echo "Configuring server with Ansible..."
                     sshagent(['jenkins-server-ssh']) {
                         sh """
+                            export SSH_AUTH_SOCK=\$SSH_AUTH_SOCK
                            ./terraflow-ci-cd/check-server-readyness.sh ${DROPLET_PUBLIC_IP}
                            ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} pwd
                            ansible-playbook ./terraflow-ci-cd/ansible/deploy-docker.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP} ansible_user=root"
