@@ -95,6 +95,10 @@ pipeline {
                         sh """
                               npm install \
                               PLAYWRIGHT_BASE_URL=http://167.99.213.144:7071 npx playwright test tests/e2e/ccs.spec.ts
+                              docker run --rm \
+                              --env PLAYWRIGHT_BASE_URL=http://167.99.213.144:7071 \
+                              -v \$(pwd):/usr/src/app \
+                              rodybothe2/playwright6 npx playwright test tests/e2e/ccs.spec.ts
 
                         """
 

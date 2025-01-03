@@ -10,4 +10,4 @@ COPY package.json package-lock.json playwright.config.ts ./
 RUN npm ci
 RUN npx playwright install --with-deps
 
-#COPY . .
+COPY . .
