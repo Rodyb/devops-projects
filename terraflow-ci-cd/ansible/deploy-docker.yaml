@@ -2,9 +2,14 @@
 - name: Ensure SSH connectivity before proceeding
   hosts: all
   tasks:
-    - name: Wait for SSH connectivity (explicit namespace)
+    - name: Wait for SSH connectivity with retries
       ansible.builtin.wait_for_connection:
-        timeout: 300
+        timeout: 30  # Timeout for each connection attempt
+        delay: 5     # Wait before the next retry
+      register: wait_result
+      until: wait_result is succeeded  # Retry until the connection succeeds
+      retries: 10                     # Number of retries
+      delay: 5
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
