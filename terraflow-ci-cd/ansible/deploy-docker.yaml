@@ -1,9 +1,11 @@
 ---
-- name: Ensure SSH connectivity before proceeding
+- name: Wait for SSH to become available
   hosts: all
   tasks:
-    - name: Wait for SSH to become available
-      wait_for_connection:
+    - name: Wait for port 22 to become available
+      wait_for:
+        port: 22
+        host: "{{ inventory_hostname }}"
         timeout: 300
 - name: Pre-check and resolve apt lock issues
   hosts: all
