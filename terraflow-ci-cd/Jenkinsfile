@@ -26,6 +26,16 @@ pipeline {
                 }
             }
         }
+      stage('Wait for Server to be Ready') {
+                steps {
+                    script {
+                        echo "Waiting for port 22 on ${DROPLET_PUBLIC_IP} to be ready..."
+                        sh """
+                            ansible localhost -m ansible.builtin.wait_for -a "port=22 host=${DROPLET_PUBLIC_IP} timeout=60"
+                        """
+                    }
+                }
+            }
         stage('Configure droplet with Ansible') {
             steps {
                 script {
