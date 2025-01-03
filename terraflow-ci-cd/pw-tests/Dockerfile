@@ -3,11 +3,12 @@ FROM mcr.microsoft.com/playwright:v1.49.0-jammy
 ENV CI=1
 USER root
 
-RUN mkdir /usr/src/app
+RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
-COPY package.json package-lock.json playwright.config.ts ./
+COPY package.json package-lock.json ./
+
 RUN npm ci
+
 RUN npx playwright install --with-deps
 
-COPY . .
