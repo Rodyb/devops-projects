@@ -1,15 +1,14 @@
 ---
-- name: Ensure SSH connectivity before proceeding
+- name: Wait for service to be ready
   hosts: all
   tasks:
-    - name: Wait for SSH connectivity with retries
-      ansible.builtin.wait_for_connection:
-        timeout: 30  # Timeout for each connection attempt
-        delay: 5     # Wait before the next retry
-      register: wait_result
-      until: wait_result is succeeded  # Retry until the connection succeeds
-      retries: 10                     # Number of retries
-      delay: 5
+    - name: Wait for port 22 to become available
+      ansible.builtin.wait_for:
+        port: 22
+        host: "{{ ansible_host }}"
+        connect_timeout: 3
+        delay: 3
+        timeout: 30
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
