@@ -4,7 +4,12 @@
 SERVER_IP="$1"
 TIMEOUT=${2:-300}  # Default timeout is 300 seconds
 INTERVAL=${3:-5}   # Check every 5 seconds by default
-SSH_KEY="${4:-~/.ssh/digital_ocean_macbook}"  # Default SSH key
+
+# Ensure SSH_AUTH_SOCK is set
+if [ -z "$SSH_AUTH_SOCK" ]; then
+    echo "Error: SSH agent not available. Ensure ssh-agent is running and keys are loaded."
+    exit 1
+fi
 
 # Start time
 START_TIME=$(date +%s)
@@ -17,8 +22,8 @@ while true; do
     if [ $? -eq 0 ]; then
         echo "Port 22 is open on $SERVER_IP. Verifying SSH connection..."
 
-        # Try SSH connection
-        ssh -o BatchMode=yes -o ConnectTimeout=3 -i "$SSH_KEY" -o StrictHostKeyChecking=no root@"$SERVER_IP" exit
+        # Try SSH connection using ssh-agent
+        ssh -o BatchMode=yes -o ConnectTimeout=3 -o StrictHostKeyChecking=no root@"$SERVER_IP" exit
         if [ $? -eq 0 ]; then
             echo "SSH connection successful to $SERVER_IP. Server is ready."
             exit 0
