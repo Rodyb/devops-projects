@@ -2,13 +2,22 @@
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
-    - name: wait until server is up
+    - name: Wait until port 22 is open
       wait_for:
         port: 22
-        host: "{{ansible_host}}"
-        timeout: 60  # Optional: Adjust timeout based on server startup time
+        host: "{{ ansible_host }}"
+        timeout: 60
         sleep: 5
       delegate_to: localhost
+
+    - name: Wait for SSH connection to be ready
+      wait_for_connection:
+        timeout: 10  # Timeout for a single connection attempt
+      register: ssh_ready
+      until: ssh_ready is succeeded  # Retry until the SSH connection is ready
+      retries: 6                    # Retry up to 6 times
+      delay: 10                     # Wait 10 seconds between retries
+
 #    - name: Stop unattended-upgrades service
 #      service:
 #        name: unattended-upgrades
