@@ -1,6 +1,6 @@
 ---
 - name: Wait for service to be ready
-  hosts: all
+  hosts: localhost
   gather_facts: no
   tasks:
     - name: Wait for port 22 to become available
