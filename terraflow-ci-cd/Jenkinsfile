@@ -31,7 +31,7 @@ pipeline {
                     script {
                         echo "Waiting for port 22 on ${DROPLET_PUBLIC_IP} to be ready..."
                         sh """
-                            ansible localhost -m ansible.builtin.wait_for -a "port=22 host=${DROPLET_PUBLIC_IP} timeout=60"
+                            ansible localhost -m ansible.builtin.wait_for -a "port=22 host=167.99.33.58 timeout=90 sleep=5 delay=10"
                         """
                     }
                 }
