@@ -1,4 +1,10 @@
 ---
+- name: Ensure SSH connectivity before proceeding
+  hosts: all
+  tasks:
+    - name: Wait for SSH to become available
+      wait_for_connection:
+        timeout: 300
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
