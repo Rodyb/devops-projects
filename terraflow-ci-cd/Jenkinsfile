@@ -14,8 +14,8 @@ pipeline {
                 script {
                     dir("terraflow-ci-cd"){
                     echo "Running Terraform to provision droplet..."
-                    sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     sh 'terraform init'
+                    sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     DROPLET_PUBLIC_IP = sh(
                         script: "terraform output droplet_ip",
