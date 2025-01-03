@@ -10,6 +10,7 @@ pipeline {
     agent any
     stages {
         stage('Provision Droplet') {
+            dir("terraflow-ci-cd"){
             steps {
                 script {
                     echo "Running Terraform to provision droplet..."
@@ -21,6 +22,7 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     echo "Droplet IP: ${DROPLET_PUBLIC_IP}"
+                    }
                 }
             }
         }
@@ -41,7 +43,7 @@ pipeline {
         stage('Build application with Gradle') {
             steps {
                 script {
-                    dir("terraform-ci-cd/java-react-example") {
+                    dir("terraflow-ci-cd/java-react-example") {
                         echo "Build app with Gradle"
                         sh """
                             gradle clean build
@@ -54,7 +56,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     script {
-                        dir("terraform-ci-cd/java-react-example") {
+                        dir("terraflow-ci-cd/java-react-example") {
                             echo "Building the Docker image..."
                             sh """
                                 echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
@@ -88,7 +90,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     script {
-                        dir("pw-tests") {
+                        dir("terraflow-ci-cd/pw-tests") {
                             echo "Running Playwright tests..."
                             sh """
                                 docker run --rm \
