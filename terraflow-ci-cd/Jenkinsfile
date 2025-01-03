@@ -10,9 +10,9 @@ pipeline {
     agent any
     stages {
         stage('Provision Droplet') {
-            dir("terraflow-ci-cd"){
             steps {
                 script {
+                    dir("terraflow-ci-cd"){
                     echo "Running Terraform to provision droplet..."
                     sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
                     sh 'terraform init'
