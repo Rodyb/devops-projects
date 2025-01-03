@@ -1,8 +1,10 @@
 ---
-- name: Wait for SSH availability
-  wait_for_connection:
-    delay: 10
-    timeout: 300
+- name: Ensure SSH connectivity before proceeding
+  hosts: all
+  tasks:
+    - name: Wait for SSH connectivity (explicit namespace)
+      ansible.builtin.wait_for_connection:
+        timeout: 300
 - name: Pre-check and resolve apt lock issues
   hosts: all
   tasks:
