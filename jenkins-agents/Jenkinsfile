@@ -9,6 +9,8 @@ pipeline {
                 script {
                     dir("jenkins-agents") {
                         echo "Running Terraform to provision droplet..."
+                        sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+
                         sh 'terraform init'
                         sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
 
