@@ -56,6 +56,8 @@ pipeline {
                         echo "Committing changes to the repository..."
                             sh """
                                 pwd
+                                git ls-remote --heads https://github.com/Rodyb/devops-projects.git
+                                git branch
                                 git config user.name "rody b"
                                 git config user.email "$GITHUB_EMAIL_CREDENTIAL"
                                 git status
