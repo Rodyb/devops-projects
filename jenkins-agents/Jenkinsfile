@@ -1,6 +1,8 @@
 pipeline {
     environment {
         DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
+        DROPLET_PUBLIC_IP_1 = ""
+        DROPLET_PUBLIC_IP_2 = ""
     }
     agent any
     stages {
@@ -20,7 +22,7 @@ pipeline {
                         env.DROPLET_PUBLIC_IP_1 = agents[0]
                         env.DROPLET_PUBLIC_IP_2 = agents[1]
 
-                        sh './generate_inventory.sh'
+                        sh "./generate_inventory.sh ${env.DROPLET_PUBLIC_IP_1} ${env.DROPLET_PUBLIC_IP_2}"
                     }
                 }
             }
