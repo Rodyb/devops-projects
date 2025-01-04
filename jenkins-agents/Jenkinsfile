@@ -57,6 +57,9 @@ pipeline {
                             sh """
                                 pwd
                                 git ls-remote --heads https://github.com/Rodyb/devops-projects.git
+                                git rm bla.txt
+                                touch bla.txt
+                                echo "bla" > bla.txt
                                 git branch
                                 git config user.name "rodyb"
                                 git config user.email "$GITHUB_EMAIL_CREDENTIAL"
