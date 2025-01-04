@@ -55,6 +55,7 @@ pipeline {
                 script {
                         echo "Committing changes to the repository..."
                             sh """
+                               ENCODED_EMAIL=$(echo "$GITHUB_EMAIL_CREDENTIAL" | jq -sRr @uri)
                                git config user.name "rodyb"
                                git config user.email "$GITHUB_EMAIL_CREDENTIAL"
 
@@ -66,7 +67,7 @@ pipeline {
                                git add bla.txt
                                git commit -m "Add bla.txt with initial content" || echo "Nothing to commit."
 
-                               git push https://$GITHUB_EMAIL_CREDENTIAL:$GITHUB_PASSWORD_CREDENTIAL@github.com/Rodyb/devops-projects.git main
+                               git push https://$ENCODED_EMAIL:$GITHUB_PASSWORD_CREDENTIAL@github.com/Rodyb/devops-projects.git main
                             """
                 }
             }
