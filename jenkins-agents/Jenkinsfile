@@ -60,7 +60,7 @@ pipeline {
                                 touch bla.txt
                                 echo "bla" > bla.txt
                                 git branch
-                                git config user.name "rody b"
+                                git config user.name "rodyb"
                                 git config user.email "$GITHUB_EMAIL_CREDENTIAL"
                                 git status
                                 git checkout -b main origin/main || git checkout main
