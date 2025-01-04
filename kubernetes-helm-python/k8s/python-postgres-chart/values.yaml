@@ -1,0 +1,48 @@
+# Python Flask App Configuration
+pythonApp:
+  image:
+    repository: rodybothe2/python-app
+    tag: latest
+  service:
+    port: 5001
+    targetPort: 5000
+  env:
+    DB_NAME: exampledb
+    DB_USER: exampleuser
+    DB_PASSWORD: examplepass
+    DB_HOST: postgres-service
+    RELEASE_BUILD:
+
+# PostgreSQL Configuration
+postgres:
+  image:
+    repository: postgres
+    tag: latest
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+  env:
+    POSTGRES_USER: exampleuser
+    POSTGRES_PASSWORD: examplepass
+    POSTGRES_DB: exampledb
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Grafana Congiguration
+grafana:
+  service:
+    targetPort: 3000
+
+# Service Configuration
+postgresService:
+  type: ClusterIP
+  port: 5432
+  targetPort: 5432
+
+pythonService:
+  type: LoadBalancer
+
+

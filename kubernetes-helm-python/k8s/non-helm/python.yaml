@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-app
+  template:
+    metadata:
+      labels:
+        app: python-app
+    spec:
+      containers:
+        - name: python-container
+          image: rodybothe2/python-app4
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_NAME
+              value: exampledb
+            - name: DB_USER
+              value: exampleuser
+            - name: DB_PASSWORD
+              value: examplepass
+            - name: DB_HOST
+              value: postgres-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-service
+spec:
+  selector:
+    app: python-app
+  ports:
+    - protocol: TCP
+      port: 5001
+      targetPort: 5000
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres-container
+          image: postgres:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: exampleuser
+            - name: POSTGRES_PASSWORD
+              value: examplepass
+            - name: POSTGRES_DB
+              value: exampledb
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - exampleuser
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

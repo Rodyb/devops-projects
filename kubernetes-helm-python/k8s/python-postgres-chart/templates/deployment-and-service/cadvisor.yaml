@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cadvisor
+  labels:
+    app: cadvisor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+    spec:
+      containers:
+        - name: cadvisor
+          image: gcr.io/cadvisor/cadvisor:latest
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+              readOnly: true
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: docker
+              mountPath: /var/lib/docker
+              readOnly: true
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: docker
+          hostPath:
+            path: /var/lib/docker
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor-service
+  labels:
+    app: cadvisor
+spec:
+  type: LoadBalancer
+  selector:
+    app: cadvisor
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-app
+  template:
+    metadata:
+      labels:
+        app: python-app
+    spec:
+      containers:
+        - name: python-container
+          image: "{{ .Values.pythonApp.image.repository }}:{{ .Values.pythonApp.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ .Values.pythonApp.service.targetPort }}
+          env:
+            - name: RELEASE_BUILD
+              value: "{{ .Values.env.RELEASE_BUILD | default "false" }}"
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-and-python-secret
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-and-python-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-and-python-secret
+                  key: DB_PASSWORD
+            - name: DB_HOST
+              value: "{{ .Values.pythonApp.env.DB_HOST }}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-service
+spec:
+  selector:
+    app: python-app
+  ports:
+    - protocol: TCP
+      port: {{ .Values.pythonApp.service.port }}
+      targetPort: {{ .Values.pythonApp.service.targetPort }}
+  type: {{ .Values.pythonService.type }}
