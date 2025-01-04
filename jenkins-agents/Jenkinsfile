@@ -74,7 +74,7 @@ pipeline {
                                         git commit -m "Updated CURRENT_MAJOR_RELEASE_VERSION and APP_VERSION for release" || echo "No changes to commit"
 
                                         # Push changes with properly formatted URL
-                                        git push https://${encoded_username}:${GIT_PASSWORD}@github.com/Rodyb/k8s-test.git HEAD:main
+                                        git push https://${encoded_username}:${GIT_PASSWORD}@github.com/Rodyb/devops-projects.git HEAD:main
                                     '''
                 }
             }
