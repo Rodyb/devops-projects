@@ -10,46 +10,46 @@ pipeline {
     }
     agent any
     stages {
-        stage('Provision Droplet') {
-            steps {
-                script {
-                    dir("jenkins-agents") {
-                        echo "Running Terraform to provision droplet..."
-                        sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
-
-                        sh 'terraform init'
-                        sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
-
-                        sh 'terraform output -json jenkins_agent_ips > agents.json'
-
-                        def agents = sh(script: "jq -r '.[]' agents.json", returnStdout: true).trim().split('\n')
-                        DROPLET_PUBLIC_IP_1 = agents[0]
-                        DROPLET_PUBLIC_IP_2 = agents[1]
-                        echo "DROPLET IP 1 = ${DROPLET_PUBLIC_IP_1}"
-                        echo "DROPLET IP 1 = ${DROPLET_PUBLIC_IP_2}"
-
-                        sh './generate_inventory.sh $JENKINS_AGENT_1 $JENKINS_AGENT_2'
-                    }
-                }
-            }
-        }
-        stage('Configure Droplets with Ansible') {
-            steps {
-                script {
-                    dir("jenkins-agents") {
-                        echo "Configuring servers with Ansible..."
-                        sshagent(['jenkins-server-ssh']) {
-                            sh """
-                                sleep 30
-                                ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_1} pwd
-                                ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_2} pwd
-                                ansible-playbook -i ./ansible/inventory.ini ./ansible/playbook.yaml
-                            """
-                        }
-                    }
-                }
-            }
-        }
+//         stage('Provision Droplet') {
+//             steps {
+//                 script {
+//                     dir("jenkins-agents") {
+//                         echo "Running Terraform to provision droplet..."
+//                         sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+//
+//                         sh 'terraform init'
+//                         sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+//
+//                         sh 'terraform output -json jenkins_agent_ips > agents.json'
+//
+//                         def agents = sh(script: "jq -r '.[]' agents.json", returnStdout: true).trim().split('\n')
+//                         DROPLET_PUBLIC_IP_1 = agents[0]
+//                         DROPLET_PUBLIC_IP_2 = agents[1]
+//                         echo "DROPLET IP 1 = ${DROPLET_PUBLIC_IP_1}"
+//                         echo "DROPLET IP 1 = ${DROPLET_PUBLIC_IP_2}"
+//
+//                         sh './generate_inventory.sh $JENKINS_AGENT_1 $JENKINS_AGENT_2'
+//                     }
+//                 }
+//             }
+//         }
+//         stage('Configure Droplets with Ansible') {
+//             steps {
+//                 script {
+//                     dir("jenkins-agents") {
+//                         echo "Configuring servers with Ansible..."
+//                         sshagent(['jenkins-server-ssh']) {
+//                             sh """
+//                                 sleep 30
+//                                 ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_1} pwd
+//                                 ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_2} pwd
+//                                 ansible-playbook -i ./ansible/inventory.ini ./ansible/playbook.yaml
+//                             """
+//                         }
+//                     }
+//                 }
+//             }
+//         }
         stage('Commit Changes') {
             steps {
                 script {
@@ -57,6 +57,8 @@ pipeline {
                             sh """
                                 pwd
                                 git ls-remote --heads https://github.com/Rodyb/devops-projects.git
+                                touch bla.txt
+                                echo "bla" > bla.txt
                                 git branch
                                 git config user.name "rody b"
                                 git config user.email "$GITHUB_EMAIL_CREDENTIAL"
