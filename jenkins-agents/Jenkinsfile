@@ -61,6 +61,7 @@ pipeline {
                                 git config user.name "rody b"
                                 git config user.email "$GITHUB_EMAIL_CREDENTIAL"
                                 git status
+                                git checkout -b main origin/main || git checkout main
                                 git add jenkins-agents/agents.json
                                 git commit -m "Update Terraform state and inventory after provisioning"
                                 git push origin main
