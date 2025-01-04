@@ -55,20 +55,18 @@ pipeline {
                 script {
                         echo "Committing changes to the repository..."
                             sh """
-                                  pwd
-                                  git ls-remote --heads https://github.com/Rodyb/devops-projects.git
+                               git config user.name "rodyb"
+                               git config user.email "$GITHUB_EMAIL_CREDENTIAL"
 
-                                  git config user.name "rodyb"
-                                  git config user.email "$GITHUB_EMAIL_CREDENTIAL"
+                               git checkout main || git checkout -b main origin/main
 
-                                  git status
+                               git pull origin main --rebase || echo "Nothing to pull."
 
-                                  git add bla.txt
-                                  git commit -m "Add bla.txt with initial content" || echo "Nothing to commit."
+                               echo "bla" > bla.txt
+                               git add bla.txt
+                               git commit -m "Add bla.txt with initial content" || echo "Nothing to commit."
 
-                                  git checkout main || git checkout -b main origin/main
-
-                                  git push origin main
+                               git push https://$GITHUB_EMAIL_CREDENTIAL:$GITHUB_PASSWORD_CREDENTIAL@github.com/Rodyb/devops-projects.git main
                             """
                 }
             }
