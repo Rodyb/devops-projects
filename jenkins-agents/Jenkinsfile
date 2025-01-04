@@ -40,8 +40,8 @@ pipeline {
                         sshagent(['jenkins-server-ssh']) {
                             sh """
                                 sleep 30
-                                ssh -o StrictHostKeyChecking=no root@${env.DROPLET_PUBLIC_IP_1} pwd
-                                ssh -o StrictHostKeyChecking=no root@${env.DROPLET_PUBLIC_IP_2} pwd
+                                ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_1} pwd
+                                ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_2} pwd
                                 ansible-playbook -i ./ansible/inventory.ini ./ansible/playbook.yaml
                             """
                         }
