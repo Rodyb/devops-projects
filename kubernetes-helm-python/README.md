@@ -1,74 +1,102 @@
+
+---
 # Kubernetes CI/CD Pipeline
 
-This project automates the CI/CD process for deploying a Python application with a PostgreSQL database to a Kubernetes cluster. The pipeline handles everything from building Docker images to deploying and testing on Kubernetes.
+This project automates the CI/CD process for deploying a Python application integrated with a PostgreSQL database to a Kubernetes cluster. The pipeline handles the entire lifecycle, including version updates, Docker image building, and Kubernetes deployment.
 
 ## Tools Used
 
 - **Jenkins**: Orchestrates the CI/CD pipeline.
-- **Docker**: Builds and pushes Docker images.
-- **Kubernetes**: Deploys and manages the application.
+- **Docker**: Builds and pushes application images.
+- **Kubernetes**: Manages the application deployment.
 - **Helm**: Simplifies Kubernetes application deployment.
-- **PostgreSQL**: Database for the application.
-- **cURL**: Runs post-deployment health checks.
+- **PostgreSQL**: Backend database for the application.
 
-## Pipeline Steps
+---
 
-### 1. Docker Login
-The pipeline logs into Docker Hub to allow pushing and pulling Docker images.
+## Pipeline Overview
+
+### Parameters
+- **`RELEASE_BUILD`**: Indicates whether the pipeline is for a release build. Default is `false`.
+
+### Pipeline Stages
+
+#### 1. Docker Login
+Authenticates with Docker Hub to push/pull application images.
+
 ```bash
-# Executes the following command internally
 echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 ```
 
-### 2. Build and Push Docker Images
-The pipeline builds and pushes a Docker image of the Python application.
-```bash
-# Build Docker image
-docker build -t $DOCKER_USERNAME/python-app:${BUILD_NUMBER} .
+#### 2. Update Version for Release (Conditional)
+If `RELEASE_BUILD` is `true`, the `CURRENT_MAJOR_RELEASE_VERSION` in `app.py` is incremented and updated for a new release.
 
-# Push image to Docker Hub
-docker push $DOCKER_USERNAME/python-app:${BUILD_NUMBER}
+```bash
+# Increment version in app.py
+sed -i "s/^CURRENT_MAJOR_RELEASE_VERSION = \".*\"/CURRENT_MAJOR_RELEASE_VERSION = \"$new_version\"/" app.py
 ```
 
-### 3. Deploy to Kubernetes
-The application and its secrets are deployed to a Kubernetes cluster using Helm.
-```bash
-# Load Kubernetes configuration
-export KUBECONFIG=<path-to-kubeconfig>
+#### 3. Commit and Push Changes (Conditional)
+For release builds, commits the version changes to the main branch in the repository.
 
-# Create Kubernetes secrets
+```bash
+git config user.name "$GIT_USERNAME"
+git config user.email "$GIT_USERNAME"
+git add app.py
+git commit -m "Updated CURRENT_MAJOR_RELEASE_VERSION and APP_VERSION for release"
+git push https://${encoded_username}:${GIT_PASSWORD}@github.com/Rodyb/k8s-test.git HEAD:main
+```
+
+#### 4. Build and Push Docker Images
+Builds a Docker image of the application and pushes it to Docker Hub.
+
+```bash
+# Build Docker image
+docker build -t rodybothe2/python-app:${DOCKER_TAG} .
+
+# Push Docker image
+docker push rodybothe2/python-app:${DOCKER_TAG}
+```
+
+#### 5. Deploy to Kubernetes
+Deploys the application and its secrets using Helm.
+
+```bash
+# Create Kubernetes secret (if not exists)
 kubectl create secret generic postgres-and-python-secret \
   --from-literal=DB_NAME=<DB_NAME> \
   --from-literal=DB_USER=<DB_USER> \
   --from-literal=DB_PASSWORD=<DB_PASSWORD>
 
 # Deploy with Helm
-helm upgrade --install python-postgres-chart ./python-postgres-chart -n ms --create-namespace \
-  --set image.repository=$DOCKER_USERNAME/python-app \
-  --set image.tag=${BUILD_NUMBER}
+helm upgrade --install python-postgres-chart ./k8s/python-postgres-chart -n ms --create-namespace \
+  --set pythonApp.image.repository=rodybothe2/python-app \
+  --set pythonApp.image.tag=${DOCKER_TAG} \
+  --set env.RELEASE_BUILD=${RELEASE_BUILD}
 ```
 
-### 4. Post-Deployment Tests
-The pipeline verifies the deployment by running a health check using cURL.
-```bash
-curl -f http://kubernetes-service-url/python-app/health
-```
+---
 
-### 5. Cleanup
-Cleans up the workspace in Jenkins after the pipeline run.
-```bash
-# Executes internally in Jenkins
-cleanWs()
-```
+## Key Features
 
-## Directory Structure
+- **Conditional Versioning**: Automatically increments the version for release builds.
+- **Docker Integration**: Builds and pushes application images.
+- **Helm Charts**: Manages Kubernetes deployments.
+- **Secrets Management**: Ensures secure handling of PostgreSQL credentials.
+
+---
+
+## Project Structure
+
 ```plaintext
 .
-├── python-postgres-chart/  # Helm chart for Kubernetes deployment
-├── Dockerfile              # Dockerfile for building the application image
-├── Jenkinsfile             # CI/CD pipeline definition
-└── README.md               # Project documentation
+├── k8s/
+│   └── python-postgres-chart/  # Helm chart for application deployment
+├── app.py                     # Application source code
+├── Dockerfile                 # Dockerfile for building the application image
+├── Jenkinsfile                # CI/CD pipeline definition
+└── README.md                  # Project documentation
 ```
 
-
+---
 
