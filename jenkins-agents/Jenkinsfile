@@ -63,8 +63,6 @@ pipeline {
                                 git commit -m "Update Terraform state and inventory after provisioning"
                                 git push origin main
                             """
-
-                    }
                 }
             }
         }
