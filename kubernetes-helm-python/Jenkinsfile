@@ -27,17 +27,16 @@ pipeline {
                 script {
                     sh '''
                     # Extract the current version of application, increment it, and update app.py
-                       current_version=$(grep '^CURRENT_MAJOR_RELEASE_VERSION' app.py | awk -F'=' '{print $2}' | tr -d '[:space:]' | tr -d '"')
-                       new_version=$((current_version + 1))
+                    current_version=$(grep '^CURRENT_MAJOR_RELEASE_VERSION' app.py | awk -F'=' '{print $2}' | tr -d '[:space:]' | tr -d '"')
+                    new_version=$((current_version + 1))
 
-                       # Update CURRENT_MAJOR_RELEASE_VERSION in app.py
-                       sed -i "s/^CURRENT_MAJOR_RELEASE_VERSION = \\"$current_version\\"/CURRENT_MAJOR_RELEASE_VERSION = \\"$new_version\\"/" app.py
+                    # Update CURRENT_MAJOR_RELEASE_VERSION in app.py
+                    sed -i "s/^CURRENT_MAJOR_RELEASE_VERSION = \"$current_version\"/CURRENT_MAJOR_RELEASE_VERSION = \"$new_version\"/" app.py
 
-                       # Update the APP_VERSION in app.py
-                       sed -i "s/f\\"{CURRENT_MAJOR_RELEASE_VERSION}.0.0\\"/f\\"$new_version.0.0\\"/" app.py
+                    # Update the APP_VERSION in app.py
+                    sed -i "s/f\"{CURRENT_MAJOR_RELEASE_VERSION}.0.0\"/f\"$new_version.0.0\"/" app.py
 
-                       echo "Updated CURRENT_MAJOR_RELEASE_VERSION to: $new_version"
-
+                    echo "Updated CURRENT_MAJOR_RELEASE_VERSION to: $new_version"
 
                     # Verify the update
                     echo $new_version > .new_version
@@ -75,7 +74,7 @@ pipeline {
 
                             # Push changes with properly formatted URL
                             git push https://${encoded_username}:${GIT_PASSWORD}@github.com/Rodyb/k8s-test.git HEAD:main
-                            '''
+                        '''
                     }
                 }
             }
