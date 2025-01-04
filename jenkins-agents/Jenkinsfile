@@ -55,19 +55,20 @@ pipeline {
                 script {
                         echo "Committing changes to the repository..."
                             sh """
-                                pwd
-                                git ls-remote --heads https://github.com/Rodyb/devops-projects.git
+                                  pwd
+                                  git ls-remote --heads https://github.com/Rodyb/devops-projects.git
 
-                                git branch
-                                git config user.name "rodyb"
-                                git config user.email "$GITHUB_EMAIL_CREDENTIAL"
-                                git status
-                                git checkout -b main origin/main || git checkout main
-                                          touch bla.txt
-                                                                echo "bla" > bla.txt
-                                git add bla.txt
-                                git commit -m "Update Terraform state and inventory after provisioning"
-                                git push origin main
+                                  git config user.name "rodyb"
+                                  git config user.email "$GITHUB_EMAIL_CREDENTIAL"
+
+                                  git status
+
+                                  git add bla.txt
+                                  git commit -m "Add bla.txt with initial content" || echo "Nothing to commit."
+
+                                  git checkout main || git checkout -b main origin/main
+
+                                  git push origin main
                             """
                 }
             }
