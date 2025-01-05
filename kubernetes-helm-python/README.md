@@ -91,9 +91,12 @@ helm upgrade --install python-postgres-chart ./k8s/python-postgres-chart -n ms -
 ```plaintext
 .
 ├── k8s/
-│   └── python-postgres-chart/  # Helm chart for application deployment
+│   └── python-postgres-chart/ # Helm chart for application deployment
 ├── app.py                     # Application source code
+├── templates                  # HTML files
 ├── Dockerfile                 # Dockerfile for building the application image
+├── docker-compose.yml         # To run the setup locally
+├── requirements.txt           # Packages install file
 ├── Jenkinsfile                # CI/CD pipeline definition
 └── README.md                  # Project documentation
 ```

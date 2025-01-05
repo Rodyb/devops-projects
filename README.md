@@ -59,5 +59,5 @@ devops-projects/
 ├── jenkins-agents/          # Jenkins agent provisioning and setup
 ├── kubernetes-helm-python/  # Kubernetes Python app deployment
 ├── terraflow-ci-cd/         # Full CI/CD pipeline for Java apps
-└── monitoring-flask-app/    # Monitoring stack for Flask app
+└── monitoring/              # Monitoring stack for Flask app
 ```

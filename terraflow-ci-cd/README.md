@@ -77,11 +77,11 @@ terraform destroy -var="digitalocean_token=YOUR_DIGITALOCEAN_TOKEN" -auto-approv
 ## Directory Structure
 ```plaintext
 .
-├── terraform/          # Terraform configuration files
 ├── ansible/            # Ansible playbooks
 ├── java-react-example/ # Application source code
 ├── pw-tests/           # Playwright test scripts
-├── docker/             # Docker-related resources
+├── Jenkinsfile         # CI/CD pipeline definition
+├── main.tf             # Terraform provisioning file
 └── README.md           # Project documentation
 ```
 

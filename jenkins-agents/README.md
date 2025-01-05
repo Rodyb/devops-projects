@@ -67,9 +67,11 @@ This step removes the provisioned DigitalOcean droplets.
 
 ```plaintext
 .
-├── terraform/          # Terraform configuration for server provisioning
-├── ansible/            # Ansible playbooks for Docker and agent setup
-├── scripts/            # Utility scripts (e.g., inventory generation)
-├── README.md           # Documentation for the project
+├── ansible/                   # Ansible playbooks for Docker and agent setup
+├── Dockerfile                 # Dockerfile for building the application image
+├── Jenkinsfile                # CI/CD pipeline definition
+├── main.tf                    # Terraform provisioning file
+├── generate_inventory.sh      # Script to create Ansible inventory 
+└── README.md                  # Project documentation
 ```
 

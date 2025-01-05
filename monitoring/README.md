@@ -96,7 +96,6 @@ Alertmanager is configured to send email alerts when Prometheus detects specific
 │   └── prometheus.yml         # Prometheus configuration
 ├── alertmanager/
 │   └── alertmanager.yml       # Alertmanager configuration
-├── grafana/                   # Contains Grafana provisioning files (optional)
 ├── k6/
 │   └── loadtest.js            # K6 load test script to generate traffic
 └── README.md                  # Project documentation
