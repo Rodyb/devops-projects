@@ -61,5 +61,3 @@ devops-projects/
 ├── terraflow-ci-cd/         # Full CI/CD pipeline for Java apps
 └── monitoring-flask-app/    # Monitoring stack for Flask app
 ```
-
-Explore each folder for more details and how to get started! 🚀
