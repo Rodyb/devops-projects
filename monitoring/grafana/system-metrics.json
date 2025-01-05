@@ -1,0 +1,40 @@
+{
+  "dashboard": {
+    "title": "System Metrics",
+    "panels": [
+      {
+        "type": "gauge",
+        "title": "CPU Usage",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "100 - (avg(irate(node_cpu_seconds_total{mode='idle'}[5m])) by (instance) * 100)",
+            "legendFormat": "CPU Usage"
+          }
+        ]
+      },
+      {
+        "type": "time-series",
+        "title": "Memory Usage",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+            "legendFormat": "Memory Usage"
+          }
+        ]
+      },
+      {
+        "type": "gauge",
+        "title": "Disk Usage",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "(node_filesystem_size_bytes{fstype!=\"tmpfs\"} - node_filesystem_free_bytes{fstype!=\"tmpfs\"}) / node_filesystem_size_bytes{fstype!=\"tmpfs\"} * 100",
+            "legendFormat": "Disk Usage (%)"
+          }
+        ]
+      }
+    ]
+  }
+}

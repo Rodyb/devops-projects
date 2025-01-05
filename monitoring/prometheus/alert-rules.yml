@@ -1,0 +1,11 @@
+groups:
+  - name: FlaskAppAlerts
+    rules:
+      - alert: HighRequestVolume
+        expr: flask_app_requests_total > 500
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Request Volume Detected"
+          description: "The total number of requests has exceeded 500."
