@@ -39,7 +39,18 @@ pipeline {
                 }
             }
         }
-
+        stage('Install Lambda Dependencies') {
+            steps {
+                script {
+                    def lambdaDirs = ['createUser', 'getUser', 'listUsers']
+                    lambdaDirs.each { fn ->
+                        dir("lambda/${fn}") {
+                            sh 'npm install aws-sdk'
+                        }
+                    }
+                }
+            }
+        }
         stage('Run Integration Tests') {
             steps {
                 script {
