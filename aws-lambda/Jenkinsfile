@@ -43,11 +43,11 @@ pipeline {
         stage('Run Integration Tests') {
             steps {
                 script {
-                    dir("tests") {
+                    dir("aws-lambda/tests") {
                         sh """
                             docker run --rm \
                             -e API_URL=${env.API_URL} \
-                            lambda-integration-tests:${BUILD_NUMBER}
+                            $DOCKER_USERNAME/lambda-integration-tests:${BUILD_NUMBER}
                         """
                     }
                 }
