@@ -12,7 +12,7 @@ pipeline {
         stage('Terraform Provisioning') {
             steps {
                 script {
-                    dir("terraform") {
+                    dir("aws-lambda/terraform") {
                         sh 'ls -la && pwd'
                         sh 'terraform init'
                         sh 'terraform apply -auto-approve'
