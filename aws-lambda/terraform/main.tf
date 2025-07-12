@@ -86,7 +86,7 @@ resource "aws_lambda_function" "create_user" {
 resource "aws_lambda_function" "get_user" {
   function_name = "GetUserFunction"
   role          = aws_iam_role.lambda_exec.arn
-  runtime       = "nodejs18.x"
+  runtime       = "nodejs14.x"
   handler       = "index.handler"
 
   filename         = data.archive_file.get_user_zip.output_path
@@ -102,7 +102,7 @@ resource "aws_lambda_function" "get_user" {
 resource "aws_lambda_function" "list_users" {
   function_name = "ListUsersFunction"
   role          = aws_iam_role.lambda_exec.arn
-  runtime       = "nodejs18.x"
+  runtime       = "nodejs14.x"
   handler       = "index.handler"
 
   filename         = data.archive_file.list_users_zip.output_path
