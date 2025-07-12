@@ -13,6 +13,7 @@ pipeline {
             steps {
                 script {
                     dir("terraform") {
+                        sh 'ls -la && pwd'
                         sh 'terraform init'
                         sh 'terraform apply -auto-approve'
                         env.API_URL = sh(
@@ -25,7 +26,7 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Image for Tests') {
+        stage('Build docker image for integration tests') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     script {
