@@ -42,10 +42,12 @@ pipeline {
         stage('Install Lambda Dependencies') {
             steps {
                 script {
-                    def lambdaDirs = ['createUser', 'getUser', 'listUsers']
-                    lambdaDirs.each { fn ->
-                        dir("lambda/${fn}") {
-                            sh 'npm install aws-sdk'
+                    dir("aws-lambda/lambda") {
+                        def lambdaDirs = ['createUser', 'getUser', 'listUsers']
+                        lambdaDirs.each { fn ->
+                            dir("lambda/${fn}") {
+                                sh 'npm install aws-sdk'
+                            }
                         }
                     }
                 }
