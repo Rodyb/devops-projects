@@ -44,6 +44,16 @@ This repository contains a collection of streamlined DevOps pipelines and automa
   - Runs load tests with K6 to simulate traffic.
 - **Folder**: [`monitoring-flask-app`](./monitoring-flask-app)
 
+### 5. **Serverless Lambda API**
+- **Purpose**: Deploys a serverless REST API using AWS Lambda, DynamoDB, and API Gateway with CI/CD integration
+- **Key Tools**: Terraform, AWS Lambda, DynamoDB, API Gateway, Jenkins, Docker, Jest.
+- **Features**:
+  - Provisions infrastructure with Terraform including Lambda functions, IAM roles, API Gateway routes, and DynamoDB.
+  - Defines three endpoints: POST /users, GET /users/{id}, and GET /users for CRUD operations.
+  - Runs integration tests using Jest inside a Docker container from a Jenkins pipeline.
+  - Automatically destroys infrastructure with a conditional teardown stage.
+- **Folder**: [`aws-lambda`](./monitoring-flask-app)
+
 ---
 
 ## Usage
@@ -59,5 +69,6 @@ devops-projects/
 ├── jenkins-agents/          # Jenkins agent provisioning and setup
 ├── kubernetes-helm-python/  # Kubernetes Python app deployment
 ├── terraflow-ci-cd/         # Full CI/CD pipeline for Java apps
+├── aws-lambda/              # Serverless REST API with full CI/CD 
 └── monitoring/              # Monitoring stack for Flask app
 ```
