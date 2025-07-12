@@ -24,7 +24,46 @@ pipeline {
                 }
             }
         }
-
+stage('Install Lambda Dependencies') {
+            parallel {
+                stage('Install createUser deps') {
+                    steps {
+                        dir("aws-lambda/lambda/createUser") {
+                            sh """
+                                docker run --rm \
+                                -v \$PWD:/app \
+                                -w /app \
+                                node:18 bash -c "npm install aws-sdk"
+                            """
+                        }
+                    }
+                }
+                stage('Install getUser deps') {
+                    steps {
+                        dir("aws-lambda/lambda/getUser") {
+                            sh """
+                                docker run --rm \
+                                -v \$PWD:/app \
+                                -w /app \
+                                node:18 bash -c "npm install aws-sdk"
+                            """
+                        }
+                    }
+                }
+                stage('Install listUsers deps') {
+                    steps {
+                        dir("aws-lambda/lambda/listUsers") {
+                            sh """
+                                docker run --rm \
+                                -v \$PWD:/app \
+                                -w /app \
+                                node:18 bash -c "npm install aws-sdk"
+                            """
+                        }
+                    }
+                }
+            }
+        }
         stage('Build docker image for integration tests') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -34,20 +73,6 @@ pipeline {
                                 echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
                                 docker build -t lambda-integration-tests:${BUILD_NUMBER} .
                             """
-                        }
-                    }
-                }
-            }
-        }
-        stage('Install Lambda Dependencies') {
-            steps {
-                script {
-                    dir("aws-lambda") {
-                        def lambdaDirs = ['createUser', 'getUser', 'listUsers']
-                        lambdaDirs.each { fn ->
-                            dir("lambda/${fn}") {
-                                sh 'npm install aws-sdk'
-                            }
                         }
                     }
                 }
