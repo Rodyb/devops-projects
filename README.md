@@ -52,7 +52,7 @@ This repository contains a collection of streamlined DevOps pipelines and automa
   - Defines three endpoints: POST /users, GET /users/{id}, and GET /users for CRUD operations.
   - Runs integration tests using Jest inside a Docker container from a Jenkins pipeline.
   - Automatically destroys infrastructure with a conditional teardown stage.
-- **Folder**: [`aws-lambda`](./monitoring-flask-app)
+- **Folder**: [`aws-lambda`](./aws-lambda)
 
 ---
 
