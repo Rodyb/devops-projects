@@ -19,7 +19,7 @@ This project demonstrates a CI/CD pipeline for a serverless API, including infra
 ### Jenkins pipeline flow
 
 1. Provision infrastructure with Terraform
-2. Build Docker image for tests (`apitest`)
+2. Build Docker image for tests (`integrationtest`)
 3. Run integration tests using Jest inside the Docker container
 4. Run a basic smoke test (`curl`)
 5. Optionally destroy infra using `terraform destroy`
