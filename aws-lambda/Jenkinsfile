@@ -42,7 +42,7 @@ pipeline {
         stage('Install Lambda Dependencies') {
             steps {
                 script {
-                    dir("aws-lambda/lambda") {
+                    dir("aws-lambda") {
                         def lambdaDirs = ['createUser', 'getUser', 'listUsers']
                         lambdaDirs.each { fn ->
                             dir("lambda/${fn}") {
