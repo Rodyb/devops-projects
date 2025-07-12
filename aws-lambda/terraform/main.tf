@@ -70,7 +70,7 @@ data "archive_file" "list_users_zip" {
 resource "aws_lambda_function" "create_user" {
   function_name = "CreateUserFunction"
   role          = aws_iam_role.lambda_exec.arn
-  runtime       = "nodejs18.x"
+  runtime       = "nodejs14.x"
   handler       = "index.handler"
 
   filename         = data.archive_file.create_user_zip.output_path

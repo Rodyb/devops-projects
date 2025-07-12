@@ -24,46 +24,6 @@ pipeline {
                 }
             }
         }
-stage('Install Lambda Dependencies') {
-            parallel {
-                stage('Install createUser deps') {
-                    steps {
-                        dir("aws-lambda/lambda/createUser") {
-                            sh """
-                                docker run --rm \
-                                -v \$PWD:/app \
-                                -w /app \
-                                node:18 bash -c "npm install aws-sdk"
-                            """
-                        }
-                    }
-                }
-                stage('Install getUser deps') {
-                    steps {
-                        dir("aws-lambda/lambda/getUser") {
-                            sh """
-                                docker run --rm \
-                                -v \$PWD:/app \
-                                -w /app \
-                                node:18 bash -c "npm install aws-sdk"
-                            """
-                        }
-                    }
-                }
-                stage('Install listUsers deps') {
-                    steps {
-                        dir("aws-lambda/lambda/listUsers") {
-                            sh """
-                                docker run --rm \
-                                -v \$PWD:/app \
-                                -w /app \
-                                node:18 bash -c "npm install aws-sdk"
-                            """
-                        }
-                    }
-                }
-            }
-        }
         stage('Build docker image for integration tests') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
