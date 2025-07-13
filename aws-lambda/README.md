@@ -22,7 +22,7 @@ This project demonstrates a CI/CD pipeline for a serverless API, including infra
 2. Build Docker image for tests (`integrationtest`)
 3. Run integration tests using Jest inside the Docker container
 4. Run a basic smoke test (`curl`)
-5. Optionally destroy infra using `terraform destroy`
+5. Destroy infra using `terraform destroy`
 
 ```bash
  docker run --rm \
@@ -34,6 +34,3 @@ This project demonstrates a CI/CD pipeline for a serverless API, including infra
 
 This project showcases how to test serverless APIs after deployment, leveraging infrastructure as code and container-based testing to ensure production readiness before promoting changes.
 
----
-
-Let me know if you'd like to auto-generate the badges, diagram, or link this across projects.
