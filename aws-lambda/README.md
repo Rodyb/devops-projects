@@ -31,6 +31,5 @@ This project demonstrates a CI/CD pipeline for a serverless API, including infra
 ```
 
 ### Purpose
-
 This project showcases how to test serverless APIs after deployment, leveraging infrastructure as code and container-based testing to ensure production readiness before promoting changes.
 

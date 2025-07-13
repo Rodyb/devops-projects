@@ -1,6 +1,3 @@
-Here’s the updated **README** with **Logstash** removed:
-
----
 
 # Flask App Monitoring with Prometheus, Grafana, and Alertmanager
 
@@ -132,5 +129,4 @@ Alertmanager is configured to send email alerts when Prometheus detects specific
 - **Condition**: Flask app or Prometheus becomes unreachable.
 - **Action**: Sends an email alert.
 
----
 
