@@ -52,31 +52,37 @@ pipeline {
         stage('Configure EC2s with Ansible') {
             steps {
                 script {
-                    echo "Configuring EC2s with Ansible..."
+                    echo "Configuring EC2s with Ansible in parallel..."
+
+                    def stepsForParallel = [:]
 
                     def instances = [
                             [name: "app",   ip: env.APP_IP],
                             [name: "infra", ip: env.INFRA_IP]
                     ]
 
-                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sshagent(['ansible-ssh-key-aws']) {
-                            instances.each { instance ->
-                                echo "Running Ansible for ${instance.name} (${instance.ip})"
+                    instances.each { instance ->
+                        stepsForParallel["Configure ${instance.name}"] = {
+                            withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                                sshagent(['ansible-ssh-key-aws']) {
+                                    echo "Running Ansible for ${instance.name} (${instance.ip})"
 
-                                sh """
-                                    sleep 30
-                                    ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
+                                    sh """
+                                        sleep 30
+                                        ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
 
-                                    ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
+                                        ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
 
-                                    ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
-                                        -i '${instance.ip},' \
-                                        -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name} docker_password=${DOCKER_PASSWORD}"
-                                """
+                                        ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
+                                            -i '${instance.ip},' \
+                                            -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name} docker_password=${DOCKER_PASSWORD}"
+                                    """
+                                }
                             }
                         }
                     }
+
+                    parallel stepsForParallel
                 }
             }
         }
