@@ -97,7 +97,7 @@
   tasks:
     - name: Copy docker files
       copy:
-        src: aws-jenkins-observability/app/
+        src: "{{ playbook_dir }}/../app/"
         dest: /home/ubuntu/app/
         owner: ubuntu
         group: ubuntu
@@ -105,11 +105,12 @@
 
     - name: Copy prometheus files
       copy:
-        src: /Users/rodybothe/Documents/devops-projects/devops-projects/aws-jenkins-observability/observability/
+        src: "{{ playbook_dir }}/../observability/"
         dest: /home/ubuntu/observability/
         owner: ubuntu
         group: ubuntu
         mode: '0644'
+      when: role == "infra"
 
     - name: Docker login
       docker_login:
@@ -119,3 +120,4 @@
     - name: Start containers from compose
       community.docker.docker_compose_v2:
         project_src: /home/ubuntu/observability
+      when: role == "infra"

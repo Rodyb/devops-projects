@@ -32,55 +32,47 @@ pipeline {
                         '''
 
                         // Collect IPs
-                        env.APP_IP   = sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim()
-                        env.INFRA_IP = sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
+                        def instances = [
+                                app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
+                                infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
+                        ]
+
+                        env.APP_IP   = instances.app
+                        env.INFRA_IP = instances.infra
 
                         echo "Provisioned EC2 instances:"
-                        echo "app => ${env.APP_IP}"
-                        echo "infra => ${env.INFRA_IP}"
+                        instances.each { name, ip ->
+                            echo "${name} => ${ip}"
+                        }
                     }
                 }
             }
         }
 
         stage('Configure EC2s with Ansible') {
-            parallel {
-                stage('Configure app') {
-                    steps {
-                        withCredentials([usernamePassword(
-                                credentialsId: 'docker-credentials',
-                                usernameVariable: 'DOCKER_USERNAME',
-                                passwordVariable: 'DOCKER_PASSWORD'
-                        )]) {
-                            sshagent(['ansible-ssh-key-aws']) {
-                                sh """
-                                    sleep 30
-                                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} "echo Connected to app"
-                                    ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
-                                    ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
-                                        -i '${env.APP_IP},' \
-                                        -e "ansible_host=${env.APP_IP} ansible_user=ubuntu role=app docker_password=${DOCKER_PASSWORD}"
-                                """
-                            }
-                        }
-                    }
-                }
+            steps {
+                script {
+                    echo "Configuring EC2s with Ansible..."
 
-                stage('Configure infra') {
-                    steps {
-                        withCredentials([usernamePassword(
-                                credentialsId: 'docker-credentials',
-                                usernameVariable: 'DOCKER_USERNAME',
-                                passwordVariable: 'DOCKER_PASSWORD'
-                        )]) {
-                            sshagent(['ansible-ssh-key-aws']) {
+                    def instances = [
+                            [name: "app",   ip: env.APP_IP],
+                            [name: "infra", ip: env.INFRA_IP]
+                    ]
+
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sshagent(['ansible-ssh-key-aws']) {
+                            instances.each { instance ->
+                                echo "Running Ansible for ${instance.name} (${instance.ip})"
+
                                 sh """
                                     sleep 30
-                                    ssh -o StrictHostKeyChecking=no ubuntu@${env.INFRA_IP} "echo Connected to infra"
+                                    ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
+
                                     ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
+
                                     ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
-                                        -i '${env.INFRA_IP},' \
-                                        -e "ansible_host=${env.INFRA_IP} ansible_user=ubuntu role=infra docker_password=${DOCKER_PASSWORD}"
+                                        -i '${instance.ip},' \
+                                        -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name} docker_password=${DOCKER_PASSWORD}"
                                 """
                             }
                         }
