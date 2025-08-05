@@ -254,6 +254,14 @@ resource "aws_instance" "infra" {
 }
 
 # Outputs
+output "app_public_ip" {
+  value = aws_instance.app.public_ip
+}
+
+output "infra_public_ip" {
+  value = aws_instance.infra.public_ip
+}
+
 output "app_ssh" {
   description = "SSH command for App EC2"
   value       = "ssh -i ~/.ssh/ssh-aws-test.pem ubuntu@${aws_instance.app.public_ip}"
