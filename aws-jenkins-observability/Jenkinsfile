@@ -67,7 +67,7 @@ pipeline {
                             sh """
                                 sleep 30
                                 ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
-                                ansible-playbook playbook.yaml \
+                                ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
                                     -i '${instance.ip},' \
                                     -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name}"
                             """
