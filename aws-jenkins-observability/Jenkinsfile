@@ -12,32 +12,32 @@ pipeline {
             steps {
                 script {
                     dir("aws-jenkins-observability/terraform") {
-                    pwd
-//                         echo "Running Terraform to provision AWS EC2 instances..."
-//                         sh 'terraform init'
-//
-//                         sh '''
-//                             terraform apply \
-//                                 -auto-approve \
-//                                 -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                                 -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                                 -var="aws_region=${AWS_DEFAULT_REGION}"
-//                         '''
-//
-//                         // Collect IPs
-//                         def instances = [
-//                             app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
-//                             infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
-//                         ]
-//
-//                         // Save to environment for next stage
-//                         env.APP_IP = instances.app
-//                         env.INFRA_IP = instances.infra
-//
-//                         echo "Provisioned EC2 instances:"
-//                         instances.each { name, ip ->
-//                             echo "${name} => ${ip}"
-//                         }
+                        echo "Running Terraform to provision AWS EC2 instances..."
+                        sh 'terraform destroy'
+                        sh 'terraform init'
+
+                        sh '''
+                            terraform apply \
+                                -auto-approve \
+                                -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                                -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                                -var="aws_region=${AWS_DEFAULT_REGION}"
+                        '''
+
+                        // Collect IPs
+                        def instances = [
+                            app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
+                            infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
+                        ]
+
+                        // Save to environment for next stage
+                        env.APP_IP = instances.app
+                        env.INFRA_IP = instances.infra
+
+                        echo "Provisioned EC2 instances:"
+                        instances.each { name, ip ->
+                            echo "${name} => ${ip}"
+                        }
                     }
                 }
             }
@@ -64,7 +64,6 @@ pipeline {
                                     -i '${instance.ip},' \
                                     -e "ansible_host=${instance.ip} ansible_user=ec2-user role=${instance.name}"
                             """
-
                         }
                     }
                 }
@@ -75,7 +74,7 @@ pipeline {
     post {
         always {
             script {
-                dir("terraflow-ci-cd") {
+                dir("aws-jenkins-observability/terraform") {
                     echo "Destroying EC2 instances using Terraform..."
                     sh '''
                         terraform destroy \
