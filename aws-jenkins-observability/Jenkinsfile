@@ -60,17 +60,18 @@ pipeline {
                         [name: "infra", ip: env.INFRA_IP]
                     ]
 
-                    sshagent(['jenkins-server-ssh']) {
+                    sshagent(['ansible-ssh-key-aws']) {
                         instances.each { instance ->
                             echo "Running Ansible for ${instance.name} (${instance.ip})"
 
                             sh """
                                 ssh -o StrictHostKeyChecking=no ec2-user@${instance.ip} "echo Connected to ${instance.name}"
 
-                                ansible-playbook ./terraflow-ci-cd/ansible/deploy-docker.yaml \
+                                ansible-playbook playbook.yaml \
                                     -i '${instance.ip},' \
                                     -e "ansible_host=${instance.ip} ansible_user=ec2-user role=${instance.name}"
                             """
+                           }
                         }
                     }
                 }
