@@ -1,0 +1,82 @@
+pipeline {
+    environment {
+        DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
+        DROPLET_PUBLIC_IP_1 = ""
+        DROPLET_PUBLIC_IP_2 = ""
+        JENKINS_AGENT_1 = credentials('jenkins-agent-1')
+        JENKINS_AGENT_2 = credentials('jenkins-agent-2')
+        GITHUB_EMAIL_CREDENTIAL = credentials('github-email-credential')
+        GITHUB_PASSWORD_CREDENTIAL = credentials('github-password-credential')
+    }
+    agent any
+    stages {
+        stage('Provision Droplet') {
+            steps {
+                script {
+                    dir("jenkins-agents") {
+                        echo "Running Terraform to provision droplet..."
+                        sh 'terraform init'
+                        sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+
+                        sh 'terraform output -json jenkins_agent_ips > agents.json'
+
+                        def agents = sh(script: "jq -r '.[]' agents.json", returnStdout: true).trim().split('\n')
+                        DROPLET_PUBLIC_IP_1 = agents[0]
+                        DROPLET_PUBLIC_IP_2 = agents[1]
+                        echo "DROPLET IP 1 = ${DROPLET_PUBLIC_IP_1}"
+                        echo "DROPLET IP 1 = ${DROPLET_PUBLIC_IP_2}"
+
+                        sh './generate_inventory.sh $JENKINS_AGENT_1 $JENKINS_AGENT_2'
+                    }
+                }
+            }
+        }
+        stage('Configure Droplets with Ansible') {
+            steps {
+                script {
+                    dir("jenkins-agents") {
+                        echo "Configuring servers with Ansible..."
+                        sshagent(['jenkins-server-ssh']) {
+                            sh """
+                                sleep 30
+                                ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_1} pwd
+                                ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP_2} pwd
+                                ansible-playbook -i ./ansible/inventory.ini ./ansible/playbook.yaml
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Commit Changes') {
+            steps {
+                script {
+                        echo "Committing changes to the repository..."
+                            sh '''
+                                #!/bin/bash
+                                set -e
+
+                                # Use the environment variables for Git credentials
+                                GIT_USERNAME="$GITHUB_EMAIL_CREDENTIAL"
+                                GIT_PASSWORD="$GITHUB_PASSWORD_CREDENTIAL"
+
+                                # Encode the username to handle special characters like '@'
+                                encoded_username=$(echo "$GIT_USERNAME" | sed 's/@/%40/g')
+
+                                # Configure Git
+                                git config user.name "$GIT_USERNAME"
+                                git config user.email "$GIT_USERNAME"
+
+                                # Add and commit changes
+                                git add jenkins-agents/agents.json
+                                git commit -m "Update Terraform state and inventory after provisioning" || echo "No changes to commit"
+
+                                # Push changes with properly formatted URL
+                                git push https://${encoded_username}:${GIT_PASSWORD}@github.com/Rodyb/devops-projects.git HEAD:main
+                            '''
+                }
+            }
+        }
+    }
+}
+//                                 git add jenkins-agents/agents.json

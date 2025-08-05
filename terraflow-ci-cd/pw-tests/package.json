@@ -1,0 +1,36 @@
+{
+  "name": "playwrightdemo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test --project wodanChromium",
+    "clean:reports": "rm -rf allure-report allure-results && mkdir allure-report allure-results",
+    "generate:reports": "allure generate ./allure-results — clean",
+    "smoke": "npx playwright test --grep @smoke",
+    "API": "npx playwright test --grep @API",
+    "open:reports": "allure open ./allure-report",
+    "pretest": "npm run clean:reports",
+    "posttest": "npm run generate:reports && npm run open:reports",
+    "postinstall": "playwright install --with-deps"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/mssql": "^9.1.5",
+    "@types/node": "^20.11.25",
+    "allure-commandline": "^2.27.0",
+    "allure-playwright": "^2.14.1",
+    "dayjs": "^1.11.10"
+  },
+  "dependencies": {
+    "@types/mysql": "^2.15.26",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.5",
+    "easy-soap-request": "^5.6.1",
+    "mysql": "^2.18.1",
+    "playwright": "^1.49.1"
+  }
+}

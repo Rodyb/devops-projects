@@ -1,0 +1,130 @@
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name: 'RELEASE_BUILD', defaultValue: false, description: 'Is this a release build?')
+    }
+    environment {
+        KUBECONFIG = credentials('k8s-test-kubeconfig-new')
+    }
+    stages {
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        sh '''
+                        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Update Version for Release') {
+            when {
+                expression { return params.RELEASE_BUILD }
+            }
+            steps {
+                script {
+                    sh '''
+                    # Extract the current version of application, increment it, and update app.py
+                    current_version=$(grep '^CURRENT_MAJOR_RELEASE_VERSION' app.py | awk -F'=' '{print $2}' | tr -d '[:space:]' | tr -d '"')
+                    new_version=$((current_version + 1))
+
+                    # Update CURRENT_MAJOR_RELEASE_VERSION in app.py
+                    sed -i "s/^CURRENT_MAJOR_RELEASE_VERSION = \"$current_version\"/CURRENT_MAJOR_RELEASE_VERSION = \"$new_version\"/" app.py
+
+                    # Update the APP_VERSION in app.py
+                    sed -i "s/f\"{CURRENT_MAJOR_RELEASE_VERSION}.0.0\"/f\"$new_version.0.0\"/" app.py
+
+                    echo "Updated CURRENT_MAJOR_RELEASE_VERSION to: $new_version"
+
+                    # Verify the update
+                    echo $new_version > .new_version
+                    echo "Updated app.py:"
+                    cat app.py
+                    '''
+
+                    // New version stored
+                    env.NEW_VERSION = sh(script: "cat .new_version", returnStdout: true).trim()
+                }
+            }
+        }
+
+        stage('Commit and Push Changes') {
+            when {
+                expression { return params.RELEASE_BUILD }
+            }
+            steps {
+                script {
+                    withCredentials([
+                    usernamePassword(credentialsId: 'github-pat-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')
+                    ]) {
+                        sh '''
+                            # Use bash shell
+                            #!/bin/bash
+                            git config user.name "$GIT_USERNAME"
+                            git config user.email "$GIT_USERNAME"
+
+                            # Encode the username to handle special characters like '@'
+                            encoded_username=$(echo "$GIT_USERNAME" | sed 's/@/%40/g')
+
+                            # Add and commit changes
+                            git add app.py
+                            git commit -m "Updated CURRENT_MAJOR_RELEASE_VERSION and APP_VERSION for release" || echo "No changes to commit"
+
+                            # Push changes with properly formatted URL
+                            git push https://${encoded_username}:${GIT_PASSWORD}@github.com/Rodyb/k8s-test.git HEAD:main
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    def dockerTag = params.RELEASE_BUILD ? env.NEW_VERSION : BUILD_NUMBER
+                    sh """
+                    docker build -t rodybothe2/python-app:${dockerTag} .
+                    docker push rodybothe2/python-app:${dockerTag}
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'postgres-secret', variable: 'POSTGRES_SECRETS'),
+                    file(credentialsId: 'k8s-test-kubeconfig-new', variable: 'KUBECONFIG_PATH'),
+                    usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')
+                ]) {
+                    script {
+
+                        def dockerTag = params.RELEASE_BUILD ? env.NEW_VERSION : BUILD_NUMBER
+                        def secrets = readJSON(text: POSTGRES_SECRETS)
+
+                        sh """
+                        export KUBECONFIG=${KUBECONFIG_PATH}
+
+                        if kubectl get secret postgres-and-python-secret > /dev/null 2>&1; then
+                          echo "Secret 'postgres-and-python-secret' already exists. Skipping creation."
+                        else
+                          kubectl create secret generic postgres-and-python-secret \
+                            --from-literal=DB_NAME=${secrets.DB_NAME} \
+                            --from-literal=DB_USER=${secrets.DB_USER} \
+                            --from-literal=DB_PASSWORD=${secrets.DB_PASSWORD}
+                        fi
+
+                        helm upgrade --install python-postgres-chart ./k8s/python-postgres-chart -n ms --create-namespace \
+                            --set pythonApp.image.repository=rodybothe2/python-app \
+                            --set pythonApp.image.tag=${dockerTag} \
+                            --set env.RELEASE_BUILD=${params.RELEASE_BUILD}
+
+                        """
+                    }
+                }
+            }
+        }
+    }
+}

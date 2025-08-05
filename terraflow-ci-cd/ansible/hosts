@@ -1,0 +1,2 @@
+[all]
+dynamic_host ansible_host="{{ ansible_host }}" ansible_ssh_private_key_file=~/.ssh/digital_ocean_macbook ansible_user=root

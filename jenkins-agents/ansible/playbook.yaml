@@ -1,0 +1,31 @@
+- name: Provision Jenkins Docker Agents
+  hosts: jenkins_agents
+  become: true
+  tasks:
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Add user to Docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Run Jenkins agent Docker container
+      docker_container:
+        name: jenkins-agent
+        image: jenkins/inbound-agent:latest
+        state: started
+        restart_policy: always
+        env:
+          JENKINS_URL: "http://157.245.75.110:8080"
+          JENKINS_SECRET: "{{ hostvars[inventory_hostname].secret }}"
+          JENKINS_AGENT_NAME: "{{ hostvars[inventory_hostname].agent_name }}"

@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  flask-app:
+    build:
+      context: .
+    ports:
+      - "5001:5000"
+    environment:
+      - RELEASE_BUILD=true
+      - CURRENT_MAJOR_RELEASE_VERSION=2
+      - FLASK_ENV=development
+      - DB_HOST=postgres
+      - DB_NAME=exampledb
+      - DB_USER=exampleuser
+      - DB_PASSWORD=examplepass
+    depends_on:
+      - postgres
+    networks:
+      - monitoring-net
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: exampleuser
+      POSTGRES_PASSWORD: examplepass
+      POSTGRES_DB: exampledb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - monitoring-net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - monitoring-net
+
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    volumes:
+#      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+#    ports:
+#      - "9090:9090"
+#    networks:
+#      - monitoring-net
+
+volumes:
+  pgdata:
+
+networks:
+  monitoring-net:
+    driver: bridge

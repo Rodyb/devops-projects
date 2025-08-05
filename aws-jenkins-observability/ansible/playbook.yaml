@@ -1,0 +1,121 @@
+---
+- name: Wait for SSH reset_connection
+  hosts: all
+  gather_facts: False
+  tasks:
+    - name: Ensure SSH port open
+      wait_for:
+        port: 22
+        delay: 10
+        timeout: 100
+        search_regex: OpenSSH
+        host: '{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}'
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: /usr/bin/python3
+
+- name: Install Docker on Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install required packages
+      apt:
+        name: [apt-transport-https, ca-certificates, curl, software-properties-common, gnupg]
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker engine
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: yes
+
+    - name: Start Docker daemon
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+- name: Add ubuntu user to docker group
+  hosts: all
+  become: yes
+  tasks:
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+    - name: Reconnect session
+      meta: reset_connection
+
+- name: Create new linux user
+  hosts: all
+  become: yes
+  tasks:
+    - name: Create new linux user
+      user:
+        name: rodyb
+        groups: docker
+
+- name: Install Docker Compose V2 plugin globally
+  hosts: all
+  become: yes
+  tasks:
+    - name: Get architecture
+      shell: uname -m
+      register: remote_arch
+
+    - name: Create Docker CLI plugins directory
+      file:
+        path: /usr/local/lib/docker/cli-plugins
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Download Docker Compose plugin
+      get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-{{ remote_arch.stdout }}"
+        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+        mode: '0755'
+
+- name: Start docker containers
+  hosts: all
+  become: yes
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Copy docker files
+      copy:
+        src: /Users/rodybothe/Documents/devops-projects/devops-projects/aws-jenkins-observability/app/
+        dest: /home/ubuntu/app/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Copy prometheus files
+      copy:
+        src: /Users/rodybothe/Documents/devops-projects/devops-projects/aws-jenkins-observability/observability/
+        dest: /home/ubuntu/observability/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Docker login
+      docker_login:
+        username: rodybothe2
+        password: "{{ docker_password }}"
+
+    - name: Start containers from compose
+      community.docker.docker_compose_v2:
+        project_src: /home/ubuntu/observability

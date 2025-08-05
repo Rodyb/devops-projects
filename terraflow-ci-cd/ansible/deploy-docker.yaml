@@ -1,0 +1,96 @@
+---
+- name: Pre-check and resolve apt lock issues
+  hosts: all
+  tasks:
+    - name: Stop unattended-upgrades service
+      service:
+        name: unattended-upgrades
+        state: stopped
+      ignore_errors: yes
+
+    - name: Kill conflicting apt/dpkg processes
+      shell: |
+        ps aux | grep '[a]pt' | awk '{print $2}' | xargs -r kill -9
+        ps aux | grep '[d]pkg' | awk '{print $2}' | xargs -r kill -9
+      ignore_errors: yes
+
+    - name: Remove apt lock files
+      file:
+        path: /var/lib/dpkg/lock-frontend
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove dpkg lock file
+      file:
+        path: /var/lib/dpkg/lock
+        state: absent
+      ignore_errors: yes
+
+    - name: Ensure dpkg is not in a broken state
+      shell: dpkg --configure -a
+      ignore_errors: yes
+
+- name: Install Docker on Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+    - name: Install required dependencies
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        pkg:
+          - docker-ce
+        state: present
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+- name: Create a new Linux user and add to the docker group
+  hosts: all
+  become: yes
+  tasks:
+    - name: Create new Linux user
+      user:
+        name: rodyb
+        groups: docker
+        append: yes
+        state: present
+
+- name: Create Linux User
+  hosts: all
+  tasks:
+    - name: Create linux-user group
+      group:
+        name: linux-user
+
+    - name: Create new Linux user
+      user:
+        name: linux-user
+        comment: Rody Admin
+        group: linux-user
+        create_home: yes

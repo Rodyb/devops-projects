@@ -1,0 +1,89 @@
+pipeline {
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('jenkins_aws_access_key_id')
+        AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
+        AWS_DEFAULT_REGION = "eu-central-1"
+    }
+
+    agent any
+
+    stages {
+        stage('Provision EC2 Instances with Terraform') {
+            steps {
+                script {
+                    dir("terraform") {
+                        echo "Running Terraform to provision AWS EC2 instances..."
+                        sh 'terraform init'
+
+                        sh '''
+                            terraform apply \
+                                -auto-approve \
+                                -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                                -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                                -var="aws_region=${AWS_DEFAULT_REGION}"
+                        '''
+
+                        // Collect IPs
+                        def instances = [
+                            app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
+                            infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
+                        ]
+
+                        // Save to environment for next stage
+                        env.APP_IP = instances.app
+                        env.INFRA_IP = instances.infra
+
+                        echo "Provisioned EC2 instances:"
+                        instances.each { name, ip ->
+                            echo "${name} => ${ip}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Configure EC2s with Ansible') {
+            steps {
+                script {
+                    echo "Configuring EC2s with Ansible..."
+
+                    def instances = [
+                        [name: "app",   ip: env.APP_IP],
+                        [name: "infra", ip: env.INFRA_IP]
+                    ]
+
+                    sshagent(['jenkins-server-ssh']) {
+                        instances.each { instance ->
+                            echo "Running Ansible for ${instance.name} (${instance.ip})"
+
+                            sh """
+                                ssh -o StrictHostKeyChecking=no ec2-user@${instance.ip} "echo Connected to ${instance.name}"
+
+                                ansible-playbook ./terraflow-ci-cd/ansible/deploy-docker.yaml \
+                                    -i '${instance.ip},' \
+                                    -e "ansible_host=${instance.ip} ansible_user=ec2-user role=${instance.name}"
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                dir("terraflow-ci-cd") {
+                    echo "Destroying EC2 instances using Terraform..."
+                    sh '''
+                        terraform destroy \
+                            -auto-approve \
+                            -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                            -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                            -var="aws_region=${AWS_DEFAULT_REGION}"
+                    '''
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,141 @@
+pipeline {
+    environment {
+        DROPLET_PUBLIC_IP = ""
+        IMAGE_NAME = "java-application"
+        DIGITALOCEAN_TOKEN = credentials('DIGITALOCEAN_TOKEN')
+        DOCKER_REGISTRY = "docker.io"
+        NEXUS_URL = "157.245.75.110:8082"
+        NEXUS_PASSWORD = credentials('NEXUS_PASSWORD')
+    }
+    agent any
+    stages {
+        stage('Provision Droplet') {
+            steps {
+                script {
+                    dir("terraflow-ci-cd"){
+                    echo "Running Terraform to provision droplet..."
+                    sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+                    sh 'terraform init'
+                    sh 'terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+                    DROPLET_PUBLIC_IP = sh(
+                        script: "terraform output droplet_ip",
+                        returnStdout: true
+                    ).trim()
+                    echo "Droplet IP: ${DROPLET_PUBLIC_IP}"
+                    }
+                }
+            }
+        }
+        stage('Configure droplet with Ansible') {
+            steps {
+                script {
+                    echo "Configuring server with Ansible..."
+                    // the sleep was needed, I tried wait_for and wait_for_connection. Nothing worked
+                    sshagent(['jenkins-server-ssh']) {
+                        sh """
+                           sleep 30
+                           ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} pwd
+                           ansible-playbook ./terraflow-ci-cd/ansible/deploy-docker.yaml -i '${DROPLET_PUBLIC_IP},' -e "ansible_host=${DROPLET_PUBLIC_IP} ansible_user=root"
+                        """
+                    }
+                }
+            }
+        }
+        stage('Build application with Gradle') {
+            steps {
+                script {
+                    dir("terraflow-ci-cd/java-react-example") {
+                        echo "Build app with Gradle"
+                        sh """
+                            gradle clean build
+                        """
+                    }
+                }
+            }
+        }
+        stage('Login to Docker and build Docker image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        dir("terraflow-ci-cd/java-react-example") {
+                            echo "Building the Docker image..."
+                            sh """
+                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                                docker build -t $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} .
+                                docker push $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run application in Docker') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        echo "Starting the Docker container on the remote server..."
+                        sshagent(['jenkins-server-ssh']) {
+                            sh """
+                            ssh -o StrictHostKeyChecking=no root@${DROPLET_PUBLIC_IP} "
+                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin &&
+                                docker pull $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} &&
+                                docker run -d -p 7071:7071 --name java-app $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER}
+                            "
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        dir("terraflow-ci-cd/pw-tests") {
+                            echo "Running Playwright tests..."
+                            sh """
+                                docker run --rm \
+                                --env PLAYWRIGHT_BASE_URL=http://${DROPLET_PUBLIC_IP}:7071 \
+                                rodybothe2/pw-final-version npx playwright test
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Push Docker Image to Nexus') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        echo "Pushing the Docker image to Nexus..."
+                        sh """
+                            echo $NEXUS_PASSWORD | docker login -u admin --password-stdin $NEXUS_URL
+                            docker tag $DOCKER_USERNAME/java-app-country:${BUILD_NUMBER} ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}
+                            docker push ${NEXUS_URL}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+        stage('Cleanup') {
+            steps {
+                script {
+                    dir("terraflow-ci-cd"){
+                    echo "Destroying droplet with Terraform..."
+                    sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                dir("terraflow-ci-cd"){
+                echo "Pipeline finished. Cleaning up any residual resources."
+                sh 'terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -auto-approve'
+                }
+            }
+        }
+    }
+}

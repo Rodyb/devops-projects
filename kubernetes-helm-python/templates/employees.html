@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee List</title>
+</head>
+<body>
+<h1>Employee List</h1>
+<table border="1">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Salary</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for employee in employees %}
+    <tr>
+        <td>{{ employee[0] }}</td>
+        <td>{{ employee[1] }}</td>
+        <td>{{ employee[2] }}</td>
+        <td>{{ employee[3] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<a href="/">Back to Home</a>
+</body>
+</html>

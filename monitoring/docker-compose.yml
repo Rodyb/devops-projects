@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  flask-app:
+    build:
+      context: .
+    ports:
+      - "5002:5000"
+    environment:
+      - RELEASE_BUILD=true
+      - CURRENT_MAJOR_RELEASE_VERSION=2
+      - FLASK_ENV=development
+      - DB_HOST=postgres
+      - DB_NAME=exampledb
+      - DB_USER=exampleuser
+      - DB_PASSWORD=examplepass
+    depends_on:
+      - postgres
+      - prometheus
+    networks:
+      - monitoring-net
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: exampleuser
+      POSTGRES_PASSWORD: examplepass
+      POSTGRES_DB: exampledb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - monitoring-net
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring-net
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring-net
+
+  alertmanager:
+    image: prom/alertmanager
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring-net
+
+  k6:
+    image: ghcr.io/grafana/k6:latest
+    volumes:
+      - ./k6:/scripts
+    networks:
+      - monitoring-net
+    entrypoint: [ "sh", "-c", "sleep 10 && k6 run /scripts/loadtest.js" ]
+    command: "sleep 15"
+    depends_on:
+      - flask-app
+
+networks:
+  monitoring-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  grafana-data:

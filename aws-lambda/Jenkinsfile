@@ -1,0 +1,74 @@
+pipeline {
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
+        AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
+        AWS_DEFAULT_REGION    = 'eu-west-1'
+    }
+
+    agent any
+
+    stages {
+
+        stage('Terraform Provisioning') {
+            steps {
+                script {
+                    dir("aws-lambda/terraform") {
+                        sh 'terraform init'
+                        sh 'terraform apply -auto-approve'
+                        env.API_URL = sh(
+                            script: 'terraform output -raw create_user_url',
+                            returnStdout: true
+                        ).trim()
+                        echo "API endpoint: ${env.API_URL}"
+                    }
+                }
+            }
+        }
+        stage('Build docker image for integration tests') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        dir("aws-lambda/tests") {
+                            sh """
+                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                                docker build -t lambda-integration-tests:${BUILD_NUMBER} .
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Run Integration Tests') {
+            steps {
+                script {
+                    dir("aws-lambda/tests") {
+                        sh """
+                            docker run --rm \
+                            -e API_URL=${env.API_URL} \
+                            lambda-integration-tests:${BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Smoke Test API') {
+            steps {
+                script {
+                    sh "curl -X GET '${env.API_URL}/users' || true"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            dir("terraform") {
+                sh 'terraform destroy -auto-approve'
+            }
+        }
+        failure {
+            echo "Pipeline failed"
+        }
+    }
+}
