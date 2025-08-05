@@ -97,7 +97,7 @@
   tasks:
     - name: Copy docker files
       copy:
-        src: /Users/rodybothe/Documents/devops-projects/devops-projects/aws-jenkins-observability/app/
+        src: aws-jenkins-observability/app/
         dest: /home/ubuntu/app/
         owner: ubuntu
         group: ubuntu
