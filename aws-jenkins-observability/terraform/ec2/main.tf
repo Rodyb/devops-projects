@@ -19,12 +19,12 @@ variable "environment" {
 }
 
 variable "pipeline_ip" {
-  description = "IP address of the CI/CD pipeline (e.g. 12.12.12.12)"
+  description = "Pipeline ip"
   type        = string
 }
 
 variable "my_ip" {
-  description = "Your own public IP (e.g. 34.56.78.90)"
+  description = "My own ip"
   type        = string
 }
 
@@ -173,7 +173,7 @@ resource "aws_security_group" "infra_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [ "${var.my_ip}/32" ]
+    cidr_blocks = [ "${var.pipeline_ip}/32", "${var.my_ip}/32" ]
   }
 
   egress {
