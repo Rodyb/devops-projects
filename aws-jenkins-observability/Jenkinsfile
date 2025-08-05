@@ -11,7 +11,7 @@ pipeline {
         stage('Provision EC2 Instances with Terraform') {
             steps {
                 script {
-                    dir("aws-jenkins-observability/terraform") {
+                    dir("aws-jenkins-observability/terraform/ec2") {
                         echo "Running Terraform to provision AWS EC2 instances..."
                         sh 'terraform destroy'
                         sh 'terraform init'

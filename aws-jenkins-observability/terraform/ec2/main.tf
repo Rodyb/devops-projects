@@ -1,3 +1,18 @@
+variable "aws_access_key" {
+  description = "AWS Access Key"
+  type        = string
+}
+
+variable "aws_secret_key" {
+  description = "AWS Secret Key"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS Region"
+  type        = string
+}
+
 variable "environment" {
   description = "Environment name (e.g. dev, test, prod)"
   type        = string
@@ -23,7 +38,9 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-central-1"
+  region     = var.aws_region
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
 }
 
 data "aws_ami" "ubuntu" {
