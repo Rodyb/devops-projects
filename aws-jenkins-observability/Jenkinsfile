@@ -59,7 +59,7 @@ pipeline {
                             [name: "infra", ip: env.INFRA_IP]
                     ]
 
-                    withCredentials([string(credentialsId: 'docker-password-only', variable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sshagent(['ansible-ssh-key-aws']) {
                             instances.each { instance ->
                                 echo "Running Ansible for ${instance.name} (${instance.ip})"
