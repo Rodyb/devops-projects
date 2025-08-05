@@ -4,7 +4,6 @@
 # Terraform state and sensitive files
 terraform.tfstate
 terraform.tfstate.backup
-terraform.tfvars
 .terraform/
 
 # Terraform lock file (optional)
