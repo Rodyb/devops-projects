@@ -65,8 +65,8 @@ pipeline {
                             echo "Running Ansible for ${instance.name} (${instance.ip})"
 
                             sh """
+                                sleep 30
                                 ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
-
                                 ansible-playbook playbook.yaml \
                                     -i '${instance.ip},' \
                                     -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name}"
