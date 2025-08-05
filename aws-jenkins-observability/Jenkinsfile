@@ -11,7 +11,7 @@ pipeline {
         stage('Provision EC2 Instances with Terraform') {
             steps {
                 script {
-                    dir("terraform") {
+                    dir("aws-jenkins-observability/terraform") {
                         echo "Running Terraform to provision AWS EC2 instances..."
                         sh 'terraform init'
 
@@ -45,6 +45,7 @@ pipeline {
         stage('Configure EC2s with Ansible') {
             steps {
                 script {
+                    dir("aws-jenkins-observability/terraform") {
                     echo "Configuring EC2s with Ansible..."
 
                     def instances = [
@@ -63,6 +64,7 @@ pipeline {
                                     -i '${instance.ip},' \
                                     -e "ansible_host=${instance.ip} ansible_user=ec2-user role=${instance.name}"
                             """
+                            }
                         }
                     }
                 }
