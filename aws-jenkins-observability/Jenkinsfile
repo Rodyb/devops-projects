@@ -91,7 +91,7 @@ pipeline {
     post {
         always {
             script {
-                dir("aws-jenkins-observability/terraform") {
+                dir("aws-jenkins-observability/terraform/ec2") {
                     echo "Destroying EC2 instances using Terraform..."
                     sh '''
                         terraform destroy \
