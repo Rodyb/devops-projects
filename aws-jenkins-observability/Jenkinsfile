@@ -159,15 +159,13 @@ pipeline {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """ 
                         ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                        cd ~/app/k6 &&
+                        cd ~/k6 &&
                         docker run --rm -i grafana/k6 run --vus=200 --duration=5m test_api.js
                          '
                         """
                 }
             }
         }
-
-
     }
 
     post {
