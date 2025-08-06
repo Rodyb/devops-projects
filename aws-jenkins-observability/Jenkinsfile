@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     dir("aws-jenkins-observability/terraform/ec2") {
-                        echo "Running Terraform to provision AWS EC2 instances..."
+                        echo "Provisioning EC2s..."
 
                         sh """
                             terraform destroy \
@@ -31,7 +31,6 @@ pipeline {
                                 -var="aws_region=${AWS_DEFAULT_REGION}"
                         '''
 
-                        // Collect IPs
                         def instances = [
                                 app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
                                 infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
@@ -87,12 +86,29 @@ pipeline {
             }
         }
     }
+        stage('Start Python App on App EC2') {
+            steps {
+                script {
+                    echo "Starting Python ${env.APP_IP}"
+
+                    sshagent(['ansible-ssh-key-aws']) {
+                        sh """
+                                ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                                    cd ~/app &&
+                                    docker compose up -d
+                                    sleep 300
+                                '
+                            """
+                    }
+                }
+            }
+        }
 
     post {
         always {
             script {
                 dir("aws-jenkins-observability/terraform/ec2") {
-                    echo "Destroying EC2 instances using Terraform..."
+                    echo "Destroying EC2 instances"
                     sh '''
                         terraform destroy \
                             -auto-approve \
