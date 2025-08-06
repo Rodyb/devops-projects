@@ -8,6 +8,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Provision EC2 Instances with Terraform') {
             steps {
                 script {
@@ -39,7 +40,7 @@ pipeline {
                         env.APP_IP   = instances.app
                         env.INFRA_IP = instances.infra
 
-                        echo "Provisioned EC2 instances:"
+                        echo "EC2 instances IPs:"
                         instances.each { name, ip ->
                             echo "${name} => ${ip}"
                         }
@@ -51,7 +52,7 @@ pipeline {
         stage('Configure EC2s with Ansible') {
             steps {
                 script {
-                    echo "Configuring EC2s with Ansible in parallel..."
+                    echo "Configuring EC2s"
 
                     def stepsForParallel = [:]
 
@@ -86,20 +87,49 @@ pipeline {
             }
         }
 
+        stage('Build Docker Image') {
+            steps {
+                dir("aws-jenkins-observability/app") {
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                    docker build -f Dockerfile.test -t app-fastapi:test .
+                """
+                    }
+                }
+            }
+        }
+
         stage('Start Python App on App EC2') {
             steps {
                 script {
-                    echo "Starting Python on ${env.APP_IP}"
+                    echo "Starting Python app on ${env.APP_IP}"
 
                     sshagent(['ansible-ssh-key-aws']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                                 cd ~/app &&
                                 docker compose up -d
-                                sleep 300
+                                sleep 10
                             '
                         """
                     }
+                }
+            }
+        }
+
+        stage('Run Integration Tests') {
+            steps {
+                script {
+                    sh """
+                        docker network create app_default || true
+                        docker run --rm \
+                            --network=app_default \
+                            -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
+                            app-fastapi \
+                            pytest
+                            sleep 300
+                    """
                 }
             }
         }
