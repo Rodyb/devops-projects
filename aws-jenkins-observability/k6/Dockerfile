@@ -4,5 +4,6 @@ WORKDIR /k6
 
 COPY test_api.js .
 
-CMD ["run", "test_api.js"]
+ENTRYPOINT ["k6", "run", "test_api.js"]
+
 
