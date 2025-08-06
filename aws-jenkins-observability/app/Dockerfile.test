@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir \
     sqlalchemy \
     psycopg2-binary \
     httpx \
-    pytest
+    pytest \
+    prometheus_client
 
 CMD ["pytest", "--tb=short", "--disable-warnings"]
