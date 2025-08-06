@@ -85,24 +85,25 @@ pipeline {
                 }
             }
         }
-    }
+
         stage('Start Python App on App EC2') {
             steps {
                 script {
-                    echo "Starting Python ${env.APP_IP}"
+                    echo "Starting Python on ${env.APP_IP}"
 
                     sshagent(['ansible-ssh-key-aws']) {
                         sh """
-                                ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                                    cd ~/app &&
-                                    docker compose up -d
-                                    sleep 300
-                                '
-                            """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                                cd ~/app &&
+                                docker compose up -d
+                                sleep 300
+                            '
+                        """
                     }
                 }
             }
         }
+    }
 
     post {
         always {
