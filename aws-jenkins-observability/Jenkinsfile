@@ -121,21 +121,41 @@ pipeline {
             }
         }
 
-        stage('Run Integration Tests') {
+        stage('Run Integration Tests on EC2') {
             steps {
-                script {
+                sshagent(['ansible-ssh-key-aws']) {
                     sh """
-                        docker network create app_default || true
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                    cd ~/app &&
+                    docker build -f Dockerfile.test -t app-fastapi:test . &&
+                    docker network create app_default || true &&
+                    docker run --rm \
+                      --network=app_default \
+                      -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
+                      app-fastapi:test pytest pytest test_app.py
+                '
+            """
+                }
+            }
+        }
+
+        stage('Run E2E Tests on EC2') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                        cd ~/app &&
+                        docker network create app_default || true &&
                         docker run --rm \
-                            --network=app_default \
-                            -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
-                            app-fastapi:test \
-                            pytest
-                            sleep 300
+                          --network=app_default \
+                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
+                          app-fastapi:test pytest test_e2e.py
+                    '
                     """
                 }
             }
         }
+
     }
 
     post {
