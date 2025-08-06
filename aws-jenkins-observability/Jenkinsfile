@@ -121,7 +121,7 @@ pipeline {
             }
         }
 
-        stage('Run integration ') {
+        stage('Run integration tests ') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """
@@ -151,6 +151,18 @@ pipeline {
                           app-fastapi:test pytest test_e2e.py
                     '
                     """
+                }
+            }
+        }
+        stage('Performance test ') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """ 
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                        cd ~/app/k6 &&
+                        docker run --rm -i grafana/k6 run --vus=200 --duration=5m test_api.js
+                         '
+                        """
                 }
             }
         }

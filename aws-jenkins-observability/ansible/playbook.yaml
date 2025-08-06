@@ -103,6 +103,14 @@
         group: ubuntu
         mode: '0644'
 
+    - name: Copy k6 files
+      copy:
+        src: "{{ playbook_dir }}/../k6/"
+        dest: /home/ubuntu/k6/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
     - name: Copy prometheus files
       copy:
         src: "{{ playbook_dir }}/../observability/"
