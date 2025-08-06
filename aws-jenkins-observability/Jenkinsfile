@@ -161,7 +161,7 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                         cd ~/k6 &&
                         docker build -t app-performance:test . &&
-                        docker run --rm app-performance:test --vus=200 --duration=5m
+                        docker run --rm --add-host=host.docker.internal:host-gateway app-performance:test --vus=200 --duration=5m
                          '
                         """
                 }
