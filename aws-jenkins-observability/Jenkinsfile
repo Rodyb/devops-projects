@@ -160,7 +160,8 @@ pipeline {
                     sh """ 
                         ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                         cd ~/k6 &&
-                        docker run --rm -i grafana/k6 run --vus=200 --duration=5m test_api.js
+                        docker build -t app-performance:test . &&
+                        docker run --rm app-performance:test --vus=200 --duration=5m
                          '
                         """
                 }
