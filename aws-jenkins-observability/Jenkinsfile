@@ -212,22 +212,34 @@ pipeline {
             }
         }
 
-        stage('Upload Allure Report to Nexus') {
+        stage('Upload Allure Reports to Nexus') {
             steps {
                 script {
-                    sh "tar -czf allure-report-${env.BUILD_NUMBER}.tar.gz allure-report"
+                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
+                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
+                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
 
+                    sh "tar -czf ${allureE2E} allure-report"
                     sh """
-                        curl -u admin:$NEXUS_PASSWORD \\
-                             --upload-file allure-report-${env.BUILD_NUMBER}.zip \\
-                             http://${NEXUS_URL}/repository/reports/allure-report-${env.BUILD_NUMBER}.zip
+                        curl -u admin:$NEXUS_PASSWORD \
+                          --upload-file ${allureE2E} \
+                          ${nexusReport}/${allureE2E}
                     """
 
-                    echo "Allure report uploaded:"
-                    echo "http://${NEXUS_URL}/repository/reports/allure-report-${env.BUILD_NUMBER}.zip"
+                    sh "tar -czf ${allureInt} allure-report-int"
+                    sh """
+                        curl -u admin:$NEXUS_PASSWORD \
+                          --upload-file ${allureInt} \
+                          ${nexusReport}/${allureInt}
+                    """
+
+                    echo "Allure reports available:"
+                    echo "${nexusReport}/${allureE2E}"
+                    echo "${nexusReport}/${allureInt}"
                 }
             }
         }
+
     }
 
     post {
