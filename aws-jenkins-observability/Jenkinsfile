@@ -116,6 +116,35 @@ pipeline {
                 }
             }
         }
+        stage('Run Integration Tests') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                            cd ~/app &&
+
+                            docker build -f Dockerfile.test -t app-fastapi:test . &&
+                            docker rm -f integration-runner || true
+
+                            mkdir -p ~/app/allure-results-int ~/app/allure-report-int
+
+                            docker run --rm \\
+                                --name integration-runner \\
+                                --network=app_default \\
+                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+                                -v \$PWD/allure-results-int:/app/allure-results \\
+                                -v \$PWD/allure-report-int:/app/allure-report \\
+                                app-fastapi:test \\
+                                sh -c "pytest test_app.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
+                        '
+                    """
+
+                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report-int ./allure-report-int"
+                }
+
+                archiveArtifacts artifacts: 'allure-report-int/**', fingerprint: true
+            }
+        }
 
         stage('Run e2e tests') {
             steps {
@@ -145,6 +174,21 @@ pipeline {
                 }
 
                 archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
+            }
+        }
+
+        stage('Run Performance Test') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                            cd ~/k6 &&
+                            docker build -t app-performance:test . &&
+                            docker run --rm --add-host=host.docker.internal:host-gateway \\
+                                app-performance:test --vus=200 --duration=1m
+                        '
+                    """
+                }
             }
         }
 
