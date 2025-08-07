@@ -93,7 +93,6 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh """
                             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                            docker build -t app-fastapi:test .
                         """
                     }
                 }
@@ -172,7 +171,7 @@ pipeline {
         stage('Upload Allure Report to Nexus') {
             steps {
                 script {
-                    sh "zip -r allure-report-${env.BUILD_NUMBER}.zip allure-report"
+                    sh "tar -czf allure-report-${env.BUILD_NUMBER}.tar.gz allure-report"
 
                     sh """
                         curl -u admin:$NEXUS_PASSWORD \\
