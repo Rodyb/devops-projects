@@ -138,7 +138,37 @@ pipeline {
 //            }
 //        }
 
-        stage('Run e2e tests') {
+//        stage('Run e2e tests') {
+//            steps {
+//                sshagent(['ansible-ssh-key-aws']) {
+//                    sh """
+//                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+//                        cd ~/app &&
+//
+//                        docker build -t app-fastapi:test . &&
+//
+//                        docker rm -f test-runner || true &&
+//
+//                        docker run --name test-runner \\
+//                            --network=app_default \\
+//                            -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+//                            app-fastapi:test \\
+//                            sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file" &&
+//
+//                        docker cp test-runner:/app/allure-report ./allure-report &&
+//                        docker rm test-runner
+//                    '
+//                    """
+//
+//                    sh """
+//                    scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report
+//                    """
+//                }
+//
+//                archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
+//            }
+//        }
+        stage('Run e2e tests ') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """
@@ -147,19 +177,23 @@ pipeline {
 
                 docker build -t app-fastapi:test . &&
 
-                docker rm -f test-runner || true &&
+                # Clean up any old container
+                docker rm -f test-runner || true
 
-                docker run --name test-runner \\
+                mkdir -p ~/app/allure-results ~/app/allure-report
+
+                docker run --rm \\
+                    --name test-runner \\
                     --network=app_default \\
                     -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+                    -v \$PWD/allure-results:/app/allure-results \\
+                    -v \$PWD/allure-report:/app/allure-report \\
                     app-fastapi:test \\
-                    sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file" &&
-
-                docker cp test-runner:/app/allure-report ./allure-report &&
-                docker rm test-runner
+                    sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
             '
             """
 
+                    // Copy from remote to Jenkins workspace
                     sh """
             scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report
             """
