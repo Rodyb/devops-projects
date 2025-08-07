@@ -103,71 +103,72 @@ pipeline {
             }
         }
 
-        stage('Start Python App on App EC2') {
+//        stage('Start Python App on App EC2') {
+//            steps {
+//                script {
+//                    echo "Starting Python app on ${env.APP_IP}"
+//
+//                    sshagent(['ansible-ssh-key-aws']) {
+//                        sh """
+//                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+//                                cd ~/app &&
+//                                docker compose up -d
+//                                sleep 10
+//                            '
+//                        """
+//                    }
+//                }
+//            }
+//        }
+//
+        stage('Run integration tests ') {
             steps {
-                script {
-                    echo "Starting Python app on ${env.APP_IP}"
-
-                    sshagent(['ansible-ssh-key-aws']) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                                cd ~/app &&
-                                docker compose up -d
-                                sleep 10
-                            '
-                        """
-                    }
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                        cd ~/app &&
+                        docker build -f Dockerfile.test -t app-fastapi:test . &&
+                        docker network create app_default || true &&
+                        docker run --rm \
+                          --network=app_default \
+                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
+                          app-fastapi:test pytest test_app.py
+                    '
+                    """
                 }
             }
         }
 
-//        stage('Run integration tests ') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                        cd ~/app &&
-//                        docker build -f Dockerfile.test -t app-fastapi:test . &&
-//                        docker network create app_default || true &&
-//                        docker run --rm \
-//                          --network=app_default \
-//                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
-//                          app-fastapi:test pytest test_app.py
-//                    '
-//                    """
-//                }
-//            }
-//        }
-
         stage('Run e2e tests') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
-                    script {
-                        sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                            cd ~/app &&
+                    sh """
+            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                cd ~/app &&
 
-                        docker run --name test-runner \
-                          --network=app_default \
-                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
-                          app-fastapi:test \
-                          sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file" &&
-    
-                        docker cp test-runner:/app/allure-report ./allure-report &&
-                        docker rm test-runner
-                            '
-                        """
+                docker build -t app-fastapi:test . &&
 
-                        sh """
-                        scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report
-                        """
-                    }
+                docker rm -f test-runner || true &&
+
+                docker run --name test-runner \\
+                    --network=app_default \\
+                    -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+                    app-fastapi:test \\
+                    sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file" &&
+
+                docker cp test-runner:/app/allure-report ./allure-report &&
+                docker rm test-runner
+            '
+            """
+
+                    sh """
+            scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report
+            """
                 }
 
                 archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
             }
         }
-
 
 //        stage('Performance test ') {
 //            steps {
