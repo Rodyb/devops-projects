@@ -138,36 +138,6 @@ pipeline {
 //            }
 //        }
 
-//        stage('Run e2e tests') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                        cd ~/app &&
-//
-//                        docker build -t app-fastapi:test . &&
-//
-//                        docker rm -f test-runner || true &&
-//
-//                        docker run --name test-runner \\
-//                            --network=app_default \\
-//                            -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
-//                            app-fastapi:test \\
-//                            sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file" &&
-//
-//                        docker cp test-runner:/app/allure-report ./allure-report &&
-//                        docker rm test-runner
-//                    '
-//                    """
-//
-//                    sh """
-//                    scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report
-//                    """
-//                }
-//
-//                archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
-//            }
-//        }
         stage('Run e2e tests ') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
@@ -177,7 +147,6 @@ pipeline {
 
                 docker build -t app-fastapi:test . &&
 
-                # Clean up any old container
                 docker rm -f test-runner || true
 
                 mkdir -p ~/app/allure-results ~/app/allure-report
@@ -193,7 +162,6 @@ pipeline {
             '
             """
 
-                    // Copy from remote to Jenkins workspace
                     sh """
             scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report
             """
@@ -219,14 +187,49 @@ pipeline {
         stage('Push Docker Image to Nexus') {
             steps {
                 dir("aws-jenkins-observability/app") {
+                    script {
+                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
+
                         sh """
-                    docker tag app-fastapi:test ${NEXUS_URL}/repository/docker-hosted/app-fastapi:test
+                    docker tag app-fastapi:test ${imageWithTag}
+                    docker tag app-fastapi:test ${imageLatest}
+                    
                     echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
-                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:test
+                    docker push ${imageWithTag}
+                    docker push ${imageLatest}
                 """
+                    }
                 }
             }
-        }
+            stage('Upload Allure Report to Nexus') {
+                steps {
+                    script {
+                        sh "zip -r allure-report-${env.BUILD_NUMBER}.zip allure-report"
+
+                            sh """
+                    curl -u admin:$NEXUS_PASSWORD \\
+                         --upload-file allure-report-${env.BUILD_NUMBER}.zip \\
+                         http://${NEXUS_URL}/repository/reports/allure-report-${env.BUILD_NUMBER}.zip
+                """
+                        }
+                        echo "   http://${NEXUS_URL}/repository/reports/allure-report-${env.BUILD_NUMBER}.zip"
+                    }
+                }
+            }
+
+
+//        stage('Push Docker Image to Nexus') {
+//            steps {
+//                dir("aws-jenkins-observability/app") {
+//                        sh """
+//                    docker tag app-fastapi:test ${NEXUS_URL}/repository/docker-hosted/app-fastapi:test
+//                    echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+//                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:test
+//                """
+//                }
+//            }
+//        }
 
     }
 
