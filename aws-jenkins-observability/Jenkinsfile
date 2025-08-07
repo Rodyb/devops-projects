@@ -4,7 +4,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
         AWS_DEFAULT_REGION    = "eu-central-1"
         DOCKER_REGISTRY = "docker.io"
-        NEXUS_URL = "157.245.75.110:8082"
+        NEXUS_URL = "3.76.12.7:8081/:8082"
         NEXUS_PASSWORD = credentials('NEXUS_PASSWORD')
     }
 
@@ -103,70 +103,82 @@ pipeline {
             }
         }
 
-        stage('Start Python App on App EC2') {
+//        stage('Start Python App on App EC2') {
+//            steps {
+//                script {
+//                    echo "Starting Python app on ${env.APP_IP}"
+//
+//                    sshagent(['ansible-ssh-key-aws']) {
+//                        sh """
+//                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+//                                cd ~/app &&
+//                                docker compose up -d
+//                                sleep 10
+//                            '
+//                        """
+//                    }
+//                }
+//            }
+//        }
+//
+//        stage('Run integration tests ') {
+//            steps {
+//                sshagent(['ansible-ssh-key-aws']) {
+//                    sh """
+//                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+//                        cd ~/app &&
+//                        docker build -f Dockerfile.test -t app-fastapi:test . &&
+//                        docker network create app_default || true &&
+//                        docker run --rm \
+//                          --network=app_default \
+//                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
+//                          app-fastapi:test pytest test_app.py
+//                    '
+//                    """
+//                }
+//            }
+//        }
+//
+//        stage('Run e2e tests') {
+//            steps {
+//                sshagent(['ansible-ssh-key-aws']) {
+//                    sh """
+//                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+//                        cd ~/app &&
+//                        docker run --rm \
+//                          --network=app_default \
+//                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
+//                          app-fastapi:test pytest test_e2e.py
+//                    '
+//                    """
+//                }
+//            }
+//        }
+//        stage('Performance test ') {
+//            steps {
+//                sshagent(['ansible-ssh-key-aws']) {
+//                    sh """
+//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+//                        cd ~/k6 &&
+//                        docker build -t app-performance:test . &&
+//                        docker run --rm --add-host=host.docker.internal:host-gateway app-performance:test --vus=200 --duration=5m
+//                         '
+//                        """
+//                }
+//            }
+//        }
+        stage('Push Docker Image to Nexus') {
             steps {
-                script {
-                    echo "Starting Python app on ${env.APP_IP}"
-
-                    sshagent(['ansible-ssh-key-aws']) {
+                dir("aws-jenkins-observability/app") {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                                cd ~/app &&
-                                docker compose up -d
-                                sleep 10
-                            '
-                        """
-                    }
+                    docker tag app-fastapi:test ${NEXUS_URL}/repository/docker-hosted/app-fastapi:test
+                    echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:test
+                """
                 }
             }
         }
 
-        stage('Run integration tests ') {
-            steps {
-                sshagent(['ansible-ssh-key-aws']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                        cd ~/app &&
-                        docker build -f Dockerfile.test -t app-fastapi:test . &&
-                        docker network create app_default || true &&
-                        docker run --rm \
-                          --network=app_default \
-                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
-                          app-fastapi:test pytest test_app.py
-                    '
-                    """
-                }
-            }
-        }
-
-        stage('Run e2e tests') {
-            steps {
-                sshagent(['ansible-ssh-key-aws']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                        cd ~/app &&
-                        docker run --rm \
-                          --network=app_default \
-                          -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \
-                          app-fastapi:test pytest test_e2e.py
-                    '
-                    """
-                }
-            }
-        }
-        stage('Performance test ') {
-            steps {
-                sshagent(['ansible-ssh-key-aws']) {
-                    sh """ 
-                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                        cd ~/k6 &&
-                        docker build -t app-performance:test . &&
-                        docker run --rm --add-host=host.docker.internal:host-gateway app-performance:test --vus=200 --duration=5m
-                         '
-                        """
-                }
-            }
-        }
     }
 
     post {
