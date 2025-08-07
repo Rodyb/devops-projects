@@ -1,263 +1,3 @@
-//pipeline {
-//    environment {
-//        AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
-//        AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
-//        AWS_DEFAULT_REGION    = "eu-central-1"
-//        DOCKER_REGISTRY       = "docker.io"
-//        NEXUS_URL             = "3.76.12.7:8082"
-//        NEXUS_PASSWORD        = credentials('NEXUS_PASSWORD')
-//    }
-//
-//    agent any
-//
-//    stages {
-//
-//        stage('Provision EC2 Instances with Terraform') {
-//            steps {
-//                script {
-//                    dir("aws-jenkins-observability/terraform/ec2") {
-//                        echo "Provisioning EC2s..."
-//
-//                        sh """
-//                            terraform destroy -auto-approve \
-//                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                              -var="aws_region=${AWS_DEFAULT_REGION}"
-//                        """
-//                        sh 'terraform init'
-//
-//                        sh """
-//                            terraform apply -auto-approve \
-//                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                              -var="aws_region=${AWS_DEFAULT_REGION}"
-//                        """
-//
-//                        def instances = [
-//                                app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
-//                                infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
-//                        ]
-//
-//                        env.APP_IP   = instances.app
-//                        env.INFRA_IP = instances.infra
-//
-//                        echo "EC2 instances IPs:"
-//                        instances.each { name, ip ->
-//                            echo "${name} => ${ip}"
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        stage('Configure EC2s with Ansible') {
-//            steps {
-//                script {
-//                    echo "Configuring EC2s"
-//
-//                    def stepsForParallel = [:]
-//                    def instances = [
-//                            [name: "app", ip: env.APP_IP],
-//                            [name: "infra", ip: env.INFRA_IP]
-//                    ]
-//
-//                    instances.each { instance ->
-//                        stepsForParallel["Configure ${instance.name}"] = {
-//                            withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-//                                sshagent(['ansible-ssh-key-aws']) {
-//                                    echo "Running Ansible for ${instance.name} (${instance.ip})"
-//
-//                                    sh """
-//                                        sleep 30
-//                                        ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
-//
-//                                        ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
-//
-//                                        ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
-//                                            -i '${instance.ip},' \
-//                                            -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name} docker_password=${DOCKER_PASSWORD}"
-//                                    """
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    parallel stepsForParallel
-//                }
-//            }
-//        }
-//
-//        stage('Build Docker Image') {
-//            steps {
-//                dir("aws-jenkins-observability/app") {
-//                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-//                        sh """
-//                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-//                        """
-//                    }
-//                }
-//            }
-//        }
-//
-//        stage('Start Python App on App EC2') {
-//            steps {
-//                script {
-//                    echo "Starting Python app on ${env.APP_IP}"
-//
-//                    sshagent(['ansible-ssh-key-aws']) {
-//                        sh """
-//                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                                cd ~/app &&
-//                                docker compose up -d &&
-//                                sleep 10
-//                            '
-//                        """
-//                    }
-//                }
-//            }
-//        }
-//        stage('Run Integration Tests') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                            cd ~/app &&
-//
-//                            docker build -f Dockerfile.test -t app-fastapi:test . &&
-//                            docker rm -f integration-runner || true
-//
-//                            mkdir -p ~/app/allure-results-int ~/app/allure-report-int
-//
-//                            docker run --rm \\
-//                                --name integration-runner \\
-//                                --network=app_default \\
-//                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
-//                                -v \$PWD/allure-results-int:/app/allure-results \\
-//                                -v \$PWD/allure-report-int:/app/allure-report \\
-//                                app-fastapi:test \\
-//                                sh -c "pytest test_app.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
-//                        '
-//                    """
-//
-//                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report-int ./allure-report-int"
-//                }
-//
-//                archiveArtifacts artifacts: 'allure-report-int/**', fingerprint: true
-//            }
-//        }
-//
-//        stage('Run e2e tests') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                            cd ~/app &&
-//
-//                            docker build -t app-fastapi:test . &&
-//                            docker rm -f test-runner || true
-//
-//                            mkdir -p ~/app/allure-results ~/app/allure-report
-//
-//                            docker run --rm \\
-//                                --name test-runner \\
-//                                --network=app_default \\
-//                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
-//                                -v \$PWD/allure-results:/app/allure-results \\
-//                                -v \$PWD/allure-report:/app/allure-report \\
-//                                app-fastapi:test \\
-//                                sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
-//                        '
-//                    """
-//
-//                    // Copy the report to Jenkins workspace
-//                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report"
-//                }
-//
-//                archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
-//            }
-//        }
-//
-//        stage('Run Performance Test') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                            cd ~/k6 &&
-//                            docker build -t app-performance:test . &&
-//                            docker run --rm --add-host=host.docker.internal:host-gateway \\
-//                                app-performance:test --vus=200 --duration=1m
-//                        '
-//                    """
-//                }
-//            }
-//        }
-//
-//        stage('Push Docker Image to Nexus') {
-//            steps {
-//                dir("aws-jenkins-observability/app") {
-//                    script {
-//                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-//                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
-//
-//                        sh """
-//                            docker tag app-fastapi:test ${imageWithTag}
-//                            docker tag app-fastapi:test ${imageLatest}
-//
-//                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
-//                            docker push ${imageWithTag}
-//                            docker push ${imageLatest}
-//                        """
-//                    }
-//                }
-//            }
-//        }
-//
-//        stage('Upload Allure Reports to Nexus') {
-//            steps {
-//                script {
-//                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
-//                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
-//                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
-//
-//                    sh "tar -czf ${allureE2E} allure-report"
-//                    sh """
-//                        curl -u admin:$NEXUS_PASSWORD \
-//                          --upload-file ${allureE2E} \
-//                          ${nexusReport}/${allureE2E}
-//                    """
-//
-//                    sh "tar -czf ${allureInt} allure-report-int"
-//                    sh """
-//                        curl -u admin:$NEXUS_PASSWORD \
-//                          --upload-file ${allureInt} \
-//                          ${nexusReport}/${allureInt}
-//                    """
-//
-//                    echo "Allure reports available:"
-//                    echo "${nexusReport}/${allureE2E}"
-//                    echo "${nexusReport}/${allureInt}"
-//                }
-//            }
-//        }
-//
-//    }
-//
-//    post {
-//        always {
-//            script {
-//                dir("aws-jenkins-observability/terraform/ec2") {
-//                    echo "Destroying EC2 instances"
-//                    sh """
-//                        terraform destroy -auto-approve \
-//                          -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                          -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                          -var="aws_region=${AWS_DEFAULT_REGION}"
-//                    """
-//                }
-//            }
-//        }
-//    }
-//}
 pipeline {
     environment {
         AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
@@ -276,6 +16,8 @@ pipeline {
             steps {
                 script {
                     dir("aws-jenkins-observability/terraform/ec2") {
+                        echo "Provisioning EC2s..."
+
                         sh """
                             terraform destroy -auto-approve \
                               -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
@@ -283,6 +25,7 @@ pipeline {
                               -var="aws_region=${AWS_DEFAULT_REGION}"
                         """
                         sh 'terraform init'
+
                         sh """
                             terraform apply -auto-approve \
                               -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
@@ -294,8 +37,14 @@ pipeline {
                                 app: sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim(),
                                 infra: sh(script: "terraform output -raw infra_public_ip", returnStdout: true).trim()
                         ]
+
                         env.APP_IP   = instances.app
                         env.INFRA_IP = instances.infra
+
+                        echo "EC2 instances IPs:"
+                        instances.each { name, ip ->
+                            echo "${name} => ${ip}"
+                        }
                     }
                 }
             }
@@ -304,19 +53,26 @@ pipeline {
         stage('Configure EC2s with Ansible') {
             steps {
                 script {
+                    echo "Configuring EC2s"
+
                     def stepsForParallel = [:]
                     def instances = [
                             [name: "app", ip: env.APP_IP],
                             [name: "infra", ip: env.INFRA_IP]
                     ]
+
                     instances.each { instance ->
                         stepsForParallel["Configure ${instance.name}"] = {
                             withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                                 sshagent(['ansible-ssh-key-aws']) {
+                                    echo "Running Ansible for ${instance.name} (${instance.ip})"
+
                                     sh """
                                         sleep 30
                                         ssh -o StrictHostKeyChecking=no ubuntu@${instance.ip} "echo Connected to ${instance.name}"
+
                                         ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
+
                                         ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
                                             -i '${instance.ip},' \
                                             -e "ansible_host=${instance.ip} ansible_user=ubuntu role=${instance.name} docker_password=${DOCKER_PASSWORD}"
@@ -325,97 +81,97 @@ pipeline {
                             }
                         }
                     }
+
                     parallel stepsForParallel
                 }
             }
         }
 
-        stage('Build Docker Test Image') {
+        stage('Build Docker Image on EC2') {
             steps {
-                dir("aws-jenkins-observability/app") {
-                    sh "docker build -f Dockerfile.test -t app-fastapi:test ."
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                    cd ~/app &&
+                    docker build -f Dockerfile.test -t app-fastapi:test .
+                '
+            """
                 }
             }
         }
 
-        stage('Push Docker Image to Nexus') {
+        stage('Start Python App on App EC2') {
             steps {
-                dir("aws-jenkins-observability/app") {
-                    script {
-                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
+                script {
+                    echo "Starting Python app on ${env.APP_IP}"
+
+                    sshagent(['ansible-ssh-key-aws']) {
                         sh """
-                            docker tag app-fastapi:test ${imageWithTag}
-                            docker tag app-fastapi:test ${imageLatest}
-                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
-                            docker push ${imageWithTag}
-                            docker push ${imageLatest}
+                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                                cd ~/app &&
+                                docker compose up -d &&
+                                sleep 10
+                            '
                         """
                     }
                 }
             }
         }
-
-        stage('Start Python App on EC2') {
-            steps {
-                sshagent(['ansible-ssh-key-aws']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                            cd ~/app &&
-                            docker compose up -d &&
-                            sleep 10
-                        '
-                    """
-                }
-            }
-        }
-
         stage('Run Integration Tests') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                             cd ~/app &&
-                            docker pull ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER} &&
-                            docker rm -f integration-runner || true &&
-                            mkdir -p ~/app/allure-results-int ~/app/allure-report-int &&
+
+                            docker rm -f integration-runner || true
+
+                            mkdir -p ~/app/allure-results-int ~/app/allure-report-int
+
                             docker run --rm \\
                                 --name integration-runner \\
                                 --network=app_default \\
                                 -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
                                 -v \$PWD/allure-results-int:/app/allure-results \\
                                 -v \$PWD/allure-report-int:/app/allure-report \\
-                                ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER} \\
+                                app-fastapi:test \\
                                 sh -c "pytest test_app.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
                         '
                     """
+
                     sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report-int ./allure-report-int"
                 }
+
                 archiveArtifacts artifacts: 'allure-report-int/**', fingerprint: true
             }
         }
 
-        stage('Run E2E Tests') {
+        stage('Run e2e tests') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                             cd ~/app &&
-                            docker pull ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER} &&
-                            docker rm -f e2e-runner || true &&
-                            mkdir -p ~/app/allure-results ~/app/allure-report &&
+
+                            docker rm -f test-runner || true
+
+                            mkdir -p ~/app/allure-results ~/app/allure-report
+
                             docker run --rm \\
-                                --name e2e-runner \\
+                                --name test-runner \\
                                 --network=app_default \\
                                 -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
                                 -v \$PWD/allure-results:/app/allure-results \\
                                 -v \$PWD/allure-report:/app/allure-report \\
-                                ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER} \\
+                                app-fastapi:test \\
                                 sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
                         '
                     """
+
+                    // Copy the report to Jenkins workspace
                     sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report"
                 }
+
                 archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
             }
         }
@@ -435,33 +191,61 @@ pipeline {
             }
         }
 
-        stage('Upload Allure Reports to Nexus') {
+        stage('Push Docker Image to Nexus') {
             steps {
-                script {
-                    def e2eReport = "allure-report-${env.BUILD_NUMBER}.tar.gz"
-                    def intReport = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
-                    def nexusRepo = "http://${NEXUS_URL}/repository/reports"
+                dir("aws-jenkins-observability/app") {
+                    script {
+                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
 
-                    sh "tar -czf ${e2eReport} allure-report"
-                    sh "tar -czf ${intReport} allure-report-int"
+                        sh """
+                            docker tag app-fastapi:test ${imageWithTag}
+                            docker tag app-fastapi:test ${imageLatest}
 
-                    sh """
-                        curl -u admin:$NEXUS_PASSWORD --upload-file ${e2eReport} ${nexusRepo}/${e2eReport}
-                        curl -u admin:$NEXUS_PASSWORD --upload-file ${intReport} ${nexusRepo}/${intReport}
-                    """
-
-                    echo "Allure reports:"
-                    echo "${nexusRepo}/${e2eReport}"
-                    echo "${nexusRepo}/${intReport}"
+                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+                            docker push ${imageWithTag}
+                            docker push ${imageLatest}
+                        """
+                    }
                 }
             }
         }
+
+        stage('Upload Allure Reports to Nexus') {
+            steps {
+                script {
+                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
+                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
+                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
+
+                    sh "tar -czf ${allureE2E} allure-report"
+                    sh """
+                        curl -u admin:$NEXUS_PASSWORD \
+                          --upload-file ${allureE2E} \
+                          ${nexusReport}/${allureE2E}
+                    """
+
+                    sh "tar -czf ${allureInt} allure-report-int"
+                    sh """
+                        curl -u admin:$NEXUS_PASSWORD \
+                          --upload-file ${allureInt} \
+                          ${nexusReport}/${allureInt}
+                    """
+
+                    echo "Allure reports available:"
+                    echo "${nexusReport}/${allureE2E}"
+                    echo "${nexusReport}/${allureInt}"
+                }
+            }
+        }
+
     }
 
     post {
         always {
             script {
                 dir("aws-jenkins-observability/terraform/ec2") {
+                    echo "Destroying EC2 instances"
                     sh """
                         terraform destroy -auto-approve \
                           -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
