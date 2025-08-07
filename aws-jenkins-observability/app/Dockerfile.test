@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir \
     psycopg2-binary \
     httpx \
     pytest \
+    allure-pytest \
     prometheus_client
 
 CMD ["pytest", "--tb=short", "--disable-warnings"]
