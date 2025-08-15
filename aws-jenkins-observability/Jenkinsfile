@@ -15,22 +15,33 @@ pipeline {
     stages {
         stage('Deploy tested version to acceptance') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE')]) {
+                withCredentials([
+                        file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE'),
+                        string(credentialsId: 'aws-eks-admin-key', variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-eks-admin-secret', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
                     sh '''
                         export KUBECONFIG="$KUBECONFIG_FILE"
+                        export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+                        export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
                         export PATH=$PATH:/usr/local/aws-cli/v2/current/bin
-                        /usr/local/aws-cli/v2/current/bin/aws --version
+        
+                        aws --version
+                        aws sts get-caller-identity
+        
                         kubectl get nodes
                     '''
+
                     script {
                         echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
 
-//                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-//                        sh "kubectl set image deployment/app-fastapi app-fastapi=${imageWithTag}"
+//              def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+//              sh "kubectl set image deployment/app-fastapi app-fastapi=${imageWithTag}"
                     }
                 }
             }
         }
+
 //        stage('Provision EC2 Instances with Terraform') {
 //            steps {
 //                script {
