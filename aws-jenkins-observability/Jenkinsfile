@@ -18,6 +18,8 @@ pipeline {
                 withCredentials([file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE')]) {
                     sh '''
                         export KUBECONFIG="$KUBECONFIG_FILE"
+                        export PATH=$PATH:/usr/local/aws-cli/v2/current/bin
+                        /usr/local/aws-cli/v2/current/bin/aws --version
                         kubectl get nodes
                     '''
                     script {
