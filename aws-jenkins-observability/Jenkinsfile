@@ -17,8 +17,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE')]) {
                     sh '''
-                        mkdir -p ~/.kube
-                        cp $KUBECONFIG_FILE ~/.kube/config
+                        export KUBECONFIG="$KUBECONFIG_FILE"
                         kubectl get nodes
                     '''
                     script {
