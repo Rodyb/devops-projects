@@ -2,7 +2,17 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export default function () {
-    const baseUrl = 'http://host.docker.internal:8000';
+    let baseUrl;
+    try {
+        let res = http.get('http://acceptance:8000/metrics');
+        if (res.status === 200) {
+            baseUrl = 'http://acceptance:8000';
+        } else {
+            throw new Error('Not in Kubernetes');
+        }
+    } catch (e) {
+        baseUrl = 'http://host.docker.internal:8000';
+    }
 
     const payload = JSON.stringify({
         name: "TestItem",
