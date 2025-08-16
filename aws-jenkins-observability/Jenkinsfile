@@ -13,90 +13,79 @@ pipeline {
     agent any
 
     stages {
-        stage('Deploy tested version to acceptance') {
+        stage('Configure Kubernetes') {
             steps {
                 withCredentials([
                         file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE'),
-                        string(credentialsId: 'aws-eks-admin-key', variable: 'AWS_ACCESS_KEY_ID'),
-                        string(credentialsId: 'aws-eks-admin-secret', variable: 'AWS_SECRET_ACCESS_KEY')
+                        string(credentialsId: 'aws-eks-admin-key', variable: 'AWS_ACCESS_KEY_ID_ADMIN'),
+                        string(credentialsId: 'aws-eks-admin-secret', variable: 'AWS_SECRET_ACCESS_KEY_ADMIN')
                 ]) {
                     sh '''
-                        export KUBECONFIG="$KUBECONFIG_FILE"
-                        export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-                        export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-                        export PATH=$PATH:/usr/local/aws-cli/v2/current/bin
-                        docker ps -a 
-                        aws --version
-                        aws sts get-caller-identity
-        
-                        kubectl get nodes
+                        echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_ADMIN" > aws-env.sh
+                        echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_ADMIN" >> aws-env.sh
+                        echo "export AWS_DEFAULT_REGION=eu-central-1" >> aws-env.sh
+                        echo "export PATH=$PATH:/usr/local/aws-cli/v2/current/bin" >> aws-env.sh
                     '''
 
-                    script {
-                        echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+                }
+            }
+        }
 
-//              def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-//              sh "kubectl set image deployment/app-fastapi app-fastapi=${imageWithTag}"
+        stage('Provision EC2 Instances with Terraform') {
+            steps {
+                script {
+                    dir("aws-jenkins-observability/terraform/ec2-test-env") {
+                        echo "Provision EC2"
+
+                        sh """
+                            terraform destroy -auto-approve \
+                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                              -var="aws_region=${AWS_DEFAULT_REGION}"
+                        """
+                        sh 'terraform init'
+
+                        sh """
+                            terraform apply -auto-approve \
+                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                              -var="aws_region=${AWS_DEFAULT_REGION}"
+                        """
+
+                        def appIp = sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim()
+                        env.APP_IP = appIp
+
+                        echo "EC2 instances IPs:"
+                        echo "EC2 IP ${appIp} "
                     }
                 }
             }
         }
 
-//        stage('Provision EC2 Instances with Terraform') {
-//            steps {
-//                script {
-//                    dir("aws-jenkins-observability/terraform/ec2") {
-//                        echo "Provisioning EC2s..."
-//
-//                        sh """
-//                            terraform destroy -auto-approve \
-//                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                              -var="aws_region=${AWS_DEFAULT_REGION}"
-//                        """
-//                        sh 'terraform init'
-//
-//                        sh """
-//                            terraform apply -auto-approve \
-//                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                              -var="aws_region=${AWS_DEFAULT_REGION}"
-//                        """
-//
-//                        def appIp = sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim()
-//                        env.APP_IP = appIp
-//
-//                        echo "EC2 instances IPs:"
-//                        echo "EC2 IP ${appIp} "
-//                    }
-//                }
-//            }
-//        }
-//
-//        stage('Configure EC2s with Ansible') {
-//            steps {
-//                script {
-//                    echo "Configuring EC2"
-//                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-//                        sshagent(['ansible-ssh-key-aws']) {
-//                            echo "Running Ansible for ${env.APP_IP}"
-//
-//                            sh """
-//                                sleep 30
-//                                ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} "echo Connected to ${env.APP_IP}"
-//
-//                                ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
-//
-//                                ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
-//                                    -i '${env.APP_IP},' \
-//                                    -e "ansible_host=${env.APP_IP} ansible_user=ubuntu docker_password=${DOCKER_PASSWORD}"
-//                            """
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
+        stage('Configure EC2 with Ansible') {
+            steps {
+                script {
+                    echo "Configure EC2"
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sshagent(['ansible-ssh-key-aws']) {
+                            echo "Running Ansible for ${env.APP_IP}"
+
+                            sh """
+                                sleep 30
+                                ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} "echo Connected to ${env.APP_IP}"
+
+                                ansible-galaxy collection install -r aws-jenkins-observability/ansible/requirements.yaml
+
+                                ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
+                                    -i '${env.APP_IP},' \
+                                    -e "ansible_host=${env.APP_IP} ansible_user=ubuntu docker_password=${DOCKER_PASSWORD}"
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
 //        stage('Build Docker Image on EC2') {
 //            steps {
 //                sshagent(['ansible-ssh-key-aws']) {
