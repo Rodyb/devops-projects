@@ -1,3 +1,20 @@
+def kubeAction(String command) {
+    withCredentials([
+            file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE'),
+            string(credentialsId: 'aws-eks-admin-key', variable: 'AWS_ACCESS_KEY_ID_ADMIN'),
+            string(credentialsId: 'aws-eks-admin-secret', variable: 'AWS_SECRET_ACCESS_KEY_ADMIN')
+    ]) {
+        sh """
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_ADMIN
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_ADMIN
+            export AWS_DEFAULT_REGION=eu-central-1
+            export PATH=\$PATH:/usr/local/aws-cli/v2/current/bin
+            export KUBECONFIG=$KUBECONFIG_FILE
+            ${command}
+        """
+    }
+}
+
 pipeline {
     environment {
         AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
@@ -15,34 +32,12 @@ pipeline {
     stages {
         stage('Configure Kubernetes') {
             steps {
-                withCredentials([
-                        file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE'),
-                        string(credentialsId: 'aws-eks-admin-key', variable: 'AWS_ACCESS_KEY_ID_ADMIN'),
-                        string(credentialsId: 'aws-eks-admin-secret', variable: 'AWS_SECRET_ACCESS_KEY_ADMIN')
-                ]) {
-                    sh '''
-                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        export AWS_DEFAULT_REGION=eu-central-1
-                        export PATH=$PATH:/usr/local/aws-cli/v2/current/bin
-                        
-                        aws --version
-                cat <<EOF > aws-env.sh
-export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_ADMIN
-export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_ADMIN
-export AWS_DEFAULT_REGION=eu-central-1
-export PATH=$PATH:/usr/local/aws-cli/v2/current/bin
-export KUBECONFIG=$KUBECONFIG_FILE
-EOF
-                chmod +x aws-env.sh
-                echo "Environment file created:"
-                cat aws-env.sh
-
-                    '''
-
+                script {
+                    kubeAction('aws --version && kubectl version --client')
                 }
             }
         }
+
 //        stage('Provision EC2 with Terraform') {
 //            steps {
 //                script {
