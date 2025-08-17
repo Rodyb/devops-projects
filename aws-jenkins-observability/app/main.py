@@ -8,8 +8,16 @@ import time
 import psycopg2
 from fastapi.responses import Response
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter
+
 # --- CONFIG ---
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://fastapi:fastapi@db:5432/fastapidb")
+DEFAULT_HOST = os.getenv("DB_HOST", "postgres")
+if os.getenv("RUNNING_IN_DOCKER") == "true":
+    DEFAULT_HOST = "db"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://fastapi:fastapi@{DEFAULT_HOST}:5432/fastapidb"
+)
 
 # --- WAIT FOR POSTGRES ---
 def wait_for_postgres():
@@ -19,13 +27,13 @@ def wait_for_postgres():
                 dbname="fastapidb",
                 user="fastapi",
                 password="fastapi",
-                host="db"
+                host=DEFAULT_HOST
             )
             conn.close()
-            print("✅ PostgreSQL is ready.")
+            print(f"✅ PostgreSQL at {DEFAULT_HOST} is ready.")
             break
         except Exception as e:
-            print("⏳ Waiting for PostgreSQL...", e)
+            print(f"⏳ Waiting for PostgreSQL at {DEFAULT_HOST}...", e)
             time.sleep(2)
 
 wait_for_postgres()
