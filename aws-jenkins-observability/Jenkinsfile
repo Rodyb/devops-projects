@@ -248,8 +248,8 @@ pipeline {
                 ]) {
                     sh '''
                     . ./aws-env.sh
-                    echo "$NEXUS_PASS" | docker login '"${NEXUS_URL}"' -u "admin" --password-stdin
-
+                    echo "$NEXUS_PASS" | docker login $NEXUS_URL -u "admin" --password-stdin
+            
                     IMAGE_TAG="${NEXUS_URL}/repository/docker-hosted/app-fastapi:${BUILD_NUMBER}"
                     kubectl set image deployment/acceptance app-stack=$IMAGE_TAG -n acceptance
                     kubectl rollout status -n acceptance deployment/acceptance --timeout=180s
