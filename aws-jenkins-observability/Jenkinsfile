@@ -30,7 +30,7 @@ pipeline {
                 }
             }
         }
-        stage('Provision EC2 Instances with Terraform') {
+        stage('Provision EC2 with Terraform') {
             steps {
                 script {
                     dir("aws-jenkins-observability/terraform/ec2-test-env") {
@@ -78,7 +78,7 @@ pipeline {
 
                                 ansible-playbook aws-jenkins-observability/ansible/playbook.yaml \
                                     -i '${env.APP_IP},' \
-                                    -e "ansible_host=${env.APP_IP} ansible_user=ubuntu docker_password=${DOCKER_PASSWORD}"
+                                    -e "ansible_host=${env.APP_IP} ansible_user=ubuntu docker_password=${DOCKER_PASSWORD} nexus_host=${NEXUS_URL}"
                             """
                         }
                     }
@@ -86,7 +86,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image on EC2') {
+        stage('Build Docker image on EC2') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """
@@ -99,7 +99,7 @@ pipeline {
             }
         }
 
-        stage('Start Python App on App EC2') {
+        stage('Start Python app on EC2') {
             steps {
                 script {
                     echo "Starting Python app on ${env.APP_IP}"
@@ -190,7 +190,7 @@ pipeline {
                 }
             }
         }
-        stage('Push Docker Image to Nexus') {
+        stage('Push Docker image to Nexus') {
             steps {
                 sshagent(['ansible-ssh-key-aws']) {
                     sh """
