@@ -29,8 +29,9 @@ def wait_for_postgres():
             print(f"⏳ Waiting for PostgreSQL at {DEFAULT_HOST}...", e)
             time.sleep(2)
 
-wait_for_postgres()
-
+# 🛠️ Only wait if env var explicitly set
+if os.getenv("WAIT_FOR_DB", "false").lower() == "true":
+    wait_for_postgres()
 # --- DATABASE SETUP ---
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

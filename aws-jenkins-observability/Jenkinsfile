@@ -131,6 +131,7 @@ pipeline {
                                 --name integration-runner \\
                                 --network=app_default \\
                                 -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+                                -e DB_HOST=db \\
                                 -v \$PWD/allure-results-int:/app/allure-results \\
                                 -v \$PWD/allure-report-int:/app/allure-report \\
                                 app-fastapi:test \\
