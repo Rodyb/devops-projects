@@ -86,170 +86,169 @@ pipeline {
             }
         }
 
-//        stage('Build Docker Image on EC2') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                    cd ~/app &&
-//                    docker build -f Dockerfile.test -t app-fastapi:test .
-//                '
-//            """
-//                }
-//            }
-//        }
-//
-//        stage('Start Python App on App EC2') {
-//            steps {
-//                script {
-//                    echo "Starting Python app on ${env.APP_IP}"
-//
-//                    sshagent(['ansible-ssh-key-aws']) {
-//                        sh """
-//                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                                cd ~/app &&
-//                                docker compose up -d &&
-//                                sleep 10
-//                            '
-//                        """
-//                    }
-//                }
-//            }
-//        }
-//        stage('Run Integration Tests') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                            cd ~/app &&
-//
-//                            docker rm -f integration-runner || true
-//
-//                            mkdir -p ~/app/allure-results-int ~/app/allure-report-int
-//
-//                            docker run --rm \\
-//                                --name integration-runner \\
-//                                --network=app_default \\
-//                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
-//                                -v \$PWD/allure-results-int:/app/allure-results \\
-//                                -v \$PWD/allure-report-int:/app/allure-report \\
-//                                app-fastapi:test \\
-//                                sh -c "pytest test_app.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
-//                        '
-//                    """
-//
-//                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report-int ./allure-report-int"
-//                }
-//
-//                archiveArtifacts artifacts: 'allure-report-int/**', fingerprint: true
-//            }
-//        }
-//
-//        stage('Run e2e tests') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                            cd ~/app &&
-//
-//                            docker rm -f test-runner || true
-//
-//                            mkdir -p ~/app/allure-results ~/app/allure-report
-//
-//                            docker run --rm \\
-//                                --name test-runner \\
-//                                --network=app_default \\
-//                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
-//                                -v \$PWD/allure-results:/app/allure-results \\
-//                                -v \$PWD/allure-report:/app/allure-report \\
-//                                app-fastapi:test \\
-//                                sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
-//                        '
-//                    """
-//
-//                    // Copy the report to Jenkins workspace
-//                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report"
-//                }
-//
-//                archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
-//            }
-//        }
-//
-//        stage('Run Performance Test') {
-//            steps {
-//                sshagent(['ansible-ssh-key-aws']) {
-//                    sh """
-//                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-//                            cd ~/k6 &&
-//                            docker build -t app-performance:test . &&
-//                            docker run --rm --add-host=host.docker.internal:host-gateway \\
-//                                app-performance:test --vus=200 --duration=1m
-//                        '
-//                    """
-//                }
-//            }
-//        }
-//
-//        stage('Push Docker Image to Nexus') {
-//            steps {
-//                dir("aws-jenkins-observability/app") {
-//                    script {
-//                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-//                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
-//
-//                        sh """
-//                            docker tag app-fastapi:test ${imageWithTag}
-//                            docker tag app-fastapi:test ${imageLatest}
-//
-//                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
-//                            docker push ${imageWithTag}
-//                            docker push ${imageLatest}
-//                        """
-//                    }
-//                }
-//            }
-//        }
-//
-//        stage('Upload Allure Reports to Nexus') {
-//            steps {
-//                script {
-//                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
-//                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
-//                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
-//
-//                    sh "tar -czf ${allureE2E} allure-report"
-//                    sh """
-//                        curl -u admin:$NEXUS_PASSWORD \
-//                          --upload-file ${allureE2E} \
-//                          ${nexusReport}/${allureE2E}
-//                    """
-//
-//                    sh "tar -czf ${allureInt} allure-report-int"
-//                    sh """
-//                        curl -u admin:$NEXUS_PASSWORD \
-//                          --upload-file ${allureInt} \
-//                          ${nexusReport}/${allureInt}
-//                    """
-//
-//                    echo "Allure reports available:"
-//                    echo "${nexusReport}/${allureE2E}"
-//                    echo "${nexusReport}/${allureInt}"
-//                }
-//            }
-//        }
+        stage('Build Docker Image on EC2') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                    cd ~/app &&
+                    docker build -f Dockerfile.test -t app-fastapi:test .
+                '
+            """
+                }
+            }
+        }
+
+        stage('Start Python App on App EC2') {
+            steps {
+                script {
+                    echo "Starting Python app on ${env.APP_IP}"
+
+                    sshagent(['ansible-ssh-key-aws']) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                                cd ~/app &&
+                                docker compose up -d &&
+                                sleep 10
+                            '
+                        """
+                    }
+                }
+            }
+        }
+        stage('Run Integration Tests') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                            cd ~/app &&
+
+                            docker rm -f integration-runner || true
+
+                            mkdir -p ~/app/allure-results-int ~/app/allure-report-int
+
+                            docker run --rm \\
+                                --name integration-runner \\
+                                --network=app_default \\
+                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+                                -v \$PWD/allure-results-int:/app/allure-results \\
+                                -v \$PWD/allure-report-int:/app/allure-report \\
+                                app-fastapi:test \\
+                                sh -c "pytest test_app.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
+                        '
+                    """
+
+                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report-int ./allure-report-int"
+                }
+
+                archiveArtifacts artifacts: 'allure-report-int/**', fingerprint: true
+            }
+        }
+
+        stage('Run e2e tests') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                            cd ~/app &&
+
+                            docker rm -f test-runner || true
+
+                            mkdir -p ~/app/allure-results ~/app/allure-report
+
+                            docker run --rm \\
+                                --name test-runner \\
+                                --network=app_default \\
+                                -e DATABASE_URL=postgresql://fastapi:fastapi@db:5432/fastapidb \\
+                                -v \$PWD/allure-results:/app/allure-results \\
+                                -v \$PWD/allure-report:/app/allure-report \\
+                                app-fastapi:test \\
+                                sh -c "pytest test_e2e.py --alluredir=allure-results && allure generate allure-results -o allure-report --clean --single-file"
+                        '
+                    """
+
+                    sh "scp -o StrictHostKeyChecking=no -r ubuntu@${env.APP_IP}:~/app/allure-report ./allure-report"
+                }
+
+                archiveArtifacts artifacts: 'allure-report/**', fingerprint: true
+            }
+        }
+
+        stage('Run Performance Test') {
+            steps {
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                            cd ~/k6 &&
+                            docker build -t app-performance:test . &&
+                            docker run --rm --add-host=host.docker.internal:host-gateway \\
+                                app-performance:test --vus=2 --duration=30s
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Push Docker Image to Nexus') {
+            steps {
+                dir("aws-jenkins-observability/app") {
+                    script {
+                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
+
+                        sh """
+                            docker tag app-fastapi:test ${imageWithTag}
+                            docker tag app-fastapi:test ${imageLatest}
+
+                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+                            docker push ${imageWithTag}
+                            docker push ${imageLatest}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Upload Allure Reports to Nexus') {
+            steps {
+                script {
+                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
+                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
+                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
+
+                    sh "tar -czf ${allureE2E} allure-report"
+                    sh """
+                        curl -u admin:$NEXUS_PASSWORD \
+                          --upload-file ${allureE2E} \
+                          ${nexusReport}/${allureE2E}
+                    """
+
+                    sh "tar -czf ${allureInt} allure-report-int"
+                    sh """
+                        curl -u admin:$NEXUS_PASSWORD \
+                          --upload-file ${allureInt} \
+                          ${nexusReport}/${allureInt}
+                    """
+
+                    echo "Allure reports available:"
+                    echo "${nexusReport}/${allureE2E}"
+                    echo "${nexusReport}/${allureInt}"
+                }
+            }
+        }
 //        stage('Deploy tested version to acceptance') {
 //            steps {
-//                withCredentials([file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE')]) {
+//                withCredentials([
+//                        file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE'),
+//                        string(credentialsId: 'NEXUS_PASSWORD', variable: 'NEXUS_PASS')
+//                ]) {
 //                    sh '''
-//                        mkdir -p ~/.kube
-//                        cp $KUBECONFIG_FILE ~/.kube/config
-//                    '''
-//                    script {
-//                        echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+//                    source aws-env.sh
+//                    echo "$NEXUS_PASS" | docker login '"${NEXUS_URL}"' -u "admin" --password-stdin
 //
-//                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-//                        sh "kubectl set image deployment/app-fastapi app-fastapi=${imageWithTag}"
-//                    }
+//                    IMAGE_TAG="${NEXUS_URL}/repository/docker-hosted/app-fastapi:${BUILD_NUMBER}"
+//                    kubectl set image deployment/acceptance app-stack=$IMAGE_TAG -n acceptance
+//                '''
 //                }
 //            }
 //        }
