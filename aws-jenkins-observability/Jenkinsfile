@@ -190,54 +190,69 @@ pipeline {
                 }
             }
         }
-
         stage('Push Docker Image to Nexus') {
             steps {
-                dir("aws-jenkins-observability/app") {
-                    script {
-                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
-
-                        sh """
-                            docker tag app-fastapi:test ${imageWithTag}
-                            docker tag app-fastapi:test ${imageLatest}
-
-                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
-                            docker push ${imageWithTag}
-                            docker push ${imageLatest}
-                        """
-                    }
+                sshagent(['ansible-ssh-key-aws']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
+                    echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u admin --password-stdin &&
+                    docker tag app-fastapi ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${BUILD_NUMBER} &&
+                    docker tag app-fastapi ${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest &&
+                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${BUILD_NUMBER} &&
+                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest
+                '
+            """
                 }
             }
         }
 
-        stage('Upload Allure Reports to Nexus') {
-            steps {
-                script {
-                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
-                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
-                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
-
-                    sh "tar -czf ${allureE2E} allure-report"
-                    sh """
-                        curl -u admin:$NEXUS_PASSWORD \
-                          --upload-file ${allureE2E} \
-                          ${nexusReport}/${allureE2E}
-                    """
-
-                    sh "tar -czf ${allureInt} allure-report-int"
-                    sh """
-                        curl -u admin:$NEXUS_PASSWORD \
-                          --upload-file ${allureInt} \
-                          ${nexusReport}/${allureInt}
-                    """
-
-                    echo "Allure reports available:"
-                    echo "${nexusReport}/${allureE2E}"
-                    echo "${nexusReport}/${allureInt}"
-                }
-            }
-        }
+//        stage('Push Docker Image to Nexus') {
+//            steps {
+//                dir("aws-jenkins-observability/app") {
+//                    script {
+//                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+//                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
+//
+//                        sh """
+//                            docker tag app-fastapi:test ${imageWithTag}
+//                            docker tag app-fastapi:test ${imageLatest}
+//
+//                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+//                            docker push ${imageWithTag}
+//                            docker push ${imageLatest}
+//                        """
+//                    }
+//                }
+//            }
+//        }
+//
+//        stage('Upload Allure Reports to Nexus') {
+//            steps {
+//                script {
+//                    def allureE2E   = "allure-report-${env.BUILD_NUMBER}.tar.gz"
+//                    def allureInt   = "allure-report-int-${env.BUILD_NUMBER}.tar.gz"
+//                    def nexusReport = "http://${NEXUS_URL}/repository/reports"
+//
+//                    sh "tar -czf ${allureE2E} allure-report"
+//                    sh """
+//                        curl -u admin:$NEXUS_PASSWORD \
+//                          --upload-file ${allureE2E} \
+//                          ${nexusReport}/${allureE2E}
+//                    """
+//
+//                    sh "tar -czf ${allureInt} allure-report-int"
+//                    sh """
+//                        curl -u admin:$NEXUS_PASSWORD \
+//                          --upload-file ${allureInt} \
+//                          ${nexusReport}/${allureInt}
+//                    """
+//
+//                    echo "Allure reports available:"
+//                    echo "${nexusReport}/${allureE2E}"
+//                    echo "${nexusReport}/${allureInt}"
+//                }
+//            }
+//        }
 //        stage('Deploy tested version to acceptance') {
 //            steps {
 //                withCredentials([

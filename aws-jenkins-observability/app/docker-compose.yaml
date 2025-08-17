@@ -16,6 +16,7 @@ services:
   fastapi-app:
     build: .
     container_name: fastapi_app
+    image: app-fastapi
     depends_on:
       - db
     environment:
