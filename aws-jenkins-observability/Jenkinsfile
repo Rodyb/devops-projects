@@ -192,40 +192,27 @@ pipeline {
         }
         stage('Push Docker image to Nexus') {
             steps {
-                sshagent(['ansible-ssh-key-aws']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
-                    echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u admin --password-stdin &&
-                    docker tag app-fastapi ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${BUILD_NUMBER} &&
-                    docker tag app-fastapi ${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest &&
-                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:${BUILD_NUMBER} &&
-                    docker push ${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest
-                '
-            """
+                dir("aws-jenkins-observability/app") {
+                    script {
+                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
+
+                        sh """
+                            docker build -t app-fastapi .
+        
+                            docker tag app-fastapi ${imageWithTag}
+                            docker tag app-fastapi ${imageLatest}
+        
+                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
+                            docker push ${imageWithTag}
+                            docker push ${imageLatest}
+                        """
+                    }
                 }
             }
         }
 
-//        stage('Push Docker Image to Nexus') {
-//            steps {
-//                dir("aws-jenkins-observability/app") {
-//                    script {
-//                        def imageWithTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
-//                        def imageLatest  = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:latest"
-//
-//                        sh """
-//                            docker tag app-fastapi:test ${imageWithTag}
-//                            docker tag app-fastapi:test ${imageLatest}
-//
-//                            echo "$NEXUS_PASSWORD" | docker login ${NEXUS_URL} -u "admin" --password-stdin
-//                            docker push ${imageWithTag}
-//                            docker push ${imageLatest}
-//                        """
-//                    }
-//                }
-//            }
-//        }
-//
+
 //        stage('Upload Allure Reports to Nexus') {
 //            steps {
 //                script {
