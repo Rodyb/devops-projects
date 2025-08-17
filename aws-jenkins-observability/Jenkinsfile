@@ -62,38 +62,6 @@ pipeline {
             }
         }
 
-
-//        stage('Provision EC2 Instances with Terraform') {
-//            steps {
-//                script {
-//                    dir("aws-jenkins-observability/terraform/ec2-test-env") {
-//                        echo "Provision EC2"
-//
-//                        sh """
-//                            terraform destroy -auto-approve \
-//                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                              -var="aws_region=${AWS_DEFAULT_REGION}"
-//                        """
-//                        sh 'terraform init'
-//
-//                        sh """
-//                            terraform apply -auto-approve \
-//                              -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                              -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                              -var="aws_region=${AWS_DEFAULT_REGION}"
-//                        """
-//
-//                        def appIp = sh(script: "terraform output -raw app_public_ip", returnStdout: true).trim()
-//                        env.APP_IP = appIp
-//
-//                        echo "EC2 instances IPs:"
-//                        echo "EC2 IP ${appIp} "
-//                    }
-//                }
-//            }
-//        }
-
         stage('Configure EC2 with Ansible') {
             steps {
                 script {

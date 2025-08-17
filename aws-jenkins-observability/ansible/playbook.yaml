@@ -111,21 +111,7 @@
         group: ubuntu
         mode: '0644'
 
-    - name: Copy prometheus files
-      copy:
-        src: "{{ playbook_dir }}/../observability/"
-        dest: /home/ubuntu/observability/
-        owner: ubuntu
-        group: ubuntu
-        mode: '0644'
-      when: role == "infra"
-
     - name: Docker login
       docker_login:
         username: rodybothe2
         password: "{{ docker_password }}"
-
-    - name: Start containers from compose
-      community.docker.docker_compose_v2:
-        project_src: /home/ubuntu/observability
-      when: role == "infra"
