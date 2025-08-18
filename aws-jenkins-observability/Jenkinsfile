@@ -14,6 +14,9 @@ def kubeAction(def command) {
         """
     }
 }
+def sshOnEC2(String cmd) {
+    return """ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '${cmd}'"""
+}
 
 pipeline {
     environment {
@@ -21,7 +24,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
         AWS_DEFAULT_REGION    = "eu-central-1"
         DOCKER_REGISTRY       = "docker.io"
-        NEXUS_URL             = "3.76.12.7:8082"
+        NEXUS_URL             = "35.159.120.116:8082"
         NEXUS_PASSWORD        = credentials('NEXUS_PASSWORD')
         KUBECONFIG            = "${WORKSPACE}/.kube/config"
 
