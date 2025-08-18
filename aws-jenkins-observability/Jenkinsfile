@@ -104,8 +104,7 @@ pipeline {
                     sh """
                     ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                     cd ~/app &&
-                    docker build -f Dockerfile.test -t app-fastapi:test . &&
-                    docker build -t Dockerfile -t app-fastapi . &&
+                    docker build -f Dockerfile.test -t app-fastapi:test .
                 '
             """
                 }
