@@ -25,6 +25,7 @@ pipeline {
         AWS_DEFAULT_REGION    = "eu-central-1"
         DOCKER_REGISTRY       = "docker.io"
         NEXUS_URL             = "35.159.120.116:8082"
+        NEXUS_REPO            = "10.0.0.246:8082"
         NEXUS_PASSWORD        = credentials('NEXUS_PASSWORD')
         KUBECONFIG            = "${WORKSPACE}/.kube/config"
 
@@ -103,7 +104,8 @@ pipeline {
                     sh """
                     ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_IP} '
                     cd ~/app &&
-                    docker build -f Dockerfile.test -t app-fastapi:test .
+                    docker build -f Dockerfile.test -t app-fastapi:test . &&
+                    docker build -t Dockerfile -t app-fastapi . &&
                 '
             """
                 }
@@ -259,7 +261,7 @@ pipeline {
                             echo "$NEXUS_PASS" | docker login ${NEXUS_URL} -u "admin" --password-stdin
                         """
 
-                        def imageTag = "${NEXUS_URL}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
+                        def imageTag = "${NEXUS_REPO}/repository/docker-hosted/app-fastapi:${env.BUILD_NUMBER}"
 
                         kubeAction("kubectl set image deployment/acceptance app-stack=${imageTag} -n acceptance")
                         kubeAction("kubectl rollout status -n acceptance deployment/acceptance --timeout=180s")
