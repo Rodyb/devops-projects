@@ -282,43 +282,22 @@ pipeline {
                         kubeAction('kubectl logs job/k6-perf-test -n acceptance')
                 }
             }
-//        stage('Sanity test performance on Acceptance') {
-//            steps {
-//                withCredentials([file(credentialsId: 'kubeconfig-eks-acceptance', variable: 'KUBECONFIG_FILE')]) {
-//                    sh '''
-//                        mkdir -p ~/.kube
-//                        cp $KUBECONFIG_FILE ~/.kube/config
-//                    '''
-//                    script {
-//                        sh """
-//                        kubectl delete job k6-perf-test --ignore-not-found=true -n acceptance
-//                        kubectl create job k6-perf-test -n acceptance \
-//                      --image=grafana/k6 \
-//                      -- sh -c "k6 run --vus 50 --duration 30s --http-debug=full https://raw.githubusercontent.com/Rodyb/devops-projects/main/aws-jenkins-observability/k6/test_api.js"
-//                    """
-//
-//                        sh "kubectl wait --for=condition=complete job/k6-perf-test -n acceptance --timeout=600s"
-//                        sh "kubectl logs job/k6-perf-test -n acceptance"
-//                    }
-//                }
-//            }
         }
     }
-//
-//    post {
-//        always {
-//            script {
-//                dir("aws-jenkins-observability/terraform/ec2") {
-//                    echo "Destroying EC2 instances"
-//                    sh """
-//                        terraform destroy -auto-approve \
-//                          -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
-//                          -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
-//                          -var="aws_region=${AWS_DEFAULT_REGION}"
-//                    """
-//                }
-//            }
-//        }
-//    }
+
+    post {
+        always {
+            script {
+                dir("aws-jenkins-observability/terraform/ec2") {
+                    echo "Destroying EC2 instances"
+                    sh """
+                        terraform destroy -auto-approve \
+                          -var="aws_access_key=${AWS_ACCESS_KEY_ID}" \
+                          -var="aws_secret_key=${AWS_SECRET_ACCESS_KEY}" \
+                          -var="aws_region=${AWS_DEFAULT_REGION}"
+                    """
+                }
+            }
+        }
+    }
 }
-//
