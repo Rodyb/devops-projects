@@ -24,7 +24,7 @@ pipeline {
             echo "Contents:"
             ls -la
         '''
-                dir("application") {
+                dir("pipelines/application") {
                     sh "docker compose build"
                 }
             }
