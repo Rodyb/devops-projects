@@ -80,15 +80,16 @@ pipeline {
 
         stage('Generate Allure Report') {
             steps {
-                echo "Generating Allure report"
+                echo "Generat Allure report"
                 sh """
-                    rm -rf ${ALLURE_REPORT}
-                    mkdir -p ${ALLURE_REPORT}
-
+                  docker run --rm \
+                    -v ${ALLURE_ROOT}:/tests/allure-results \
+                    -v ${ALLURE_REPORT}:/tests/allure-report \
+                    ${REST_TEST_IMAGE} \
                     allure generate \
-                      ${ALLURE_ROOT}/integration \
-                      ${ALLURE_ROOT}/e2e \
-                      -o ${ALLURE_REPORT} \
+                      /tests/allure-results/integration \
+                      /tests/allure-results/e2e \
+                      -o /tests/allure-report \
                       --clean
                 """
             }
@@ -111,7 +112,7 @@ pipeline {
             archiveArtifacts artifacts: 'allure-results/**, allure-report/**', fingerprint: true
 
             echo "Stopping app stack"
-            dir("application") {
+            dir("pipelines/application") {
                 sh "docker compose down -v"
             }
         }
