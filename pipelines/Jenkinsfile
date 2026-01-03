@@ -24,7 +24,7 @@ pipeline {
             echo "Contents:"
             ls -la
         '''
-                dir("pipelines/application") {
+                dir("application") {
                     sh "docker compose build"
                 }
             }
@@ -33,7 +33,7 @@ pipeline {
         stage('Start application stack') {
             steps {
                 echo "Starting application with Docker Compose"
-                dir("pipelines/application") {
+                dir("application") {
                     sh "docker compose up -d"
                 }
             }
