@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: messageboard-db
+    environment:
+      POSTGRES_USER: messageboard
+      POSTGRES_PASSWORD: messageboard_password
+      POSTGRES_DB: messageboard
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U messageboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - messageboard-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: messageboard-app
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://messageboard:messageboard_password@db:5432/messageboard
+      USE_STANDARD_PG: "true"
+    ports:
+      - "5100:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - messageboard-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  messageboard-network:
+    driver: bridge
+
