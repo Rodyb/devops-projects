@@ -1,12 +1,3 @@
-Good catch — that’s not a cosmetic detail, that’s **correctness**.
-
-Below is the **corrected `howto.md`** with **`localhost:5100` everywhere**, aligned with your Docker Compose reality.
-Nothing else changed.
-
----
-
-# howto.md
-
 ## Messageboard Application – Local & Docker Test Guide
 
 This document explains how to:
