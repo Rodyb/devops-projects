@@ -4,7 +4,7 @@ set -e
 # ==============================
 # CONFIG (HARDCODED FOR NOW)
 # ==============================
-SLACK_WEBHOOK_URL="https://hooks.slack.com/services/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"
+SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is not set}"
 
 # Resolve script directory safely
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,7 @@ BUILD_URL="${BUILD_URL:-http://localhost}"
 # VALIDATION
 # ==============================
 if [[ ! -f "$SUMMARY_JSON" ]]; then
-  echo "❌ Allure summary not found at:"
+  echo "Allure summary not found at:"
   echo "   $SUMMARY_JSON"
   echo ""
   echo "Did you run:"
