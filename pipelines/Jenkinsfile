@@ -1,0 +1,113 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NETWORK     = "application_messageboard-network"
+        REST_TEST_IMAGE = "messageboard-rest-tests"
+
+        ALLURE_ROOT     = "${WORKSPACE}/allure-results"
+        ALLURE_REPORT   = "${WORKSPACE}/allure-report"
+    }
+
+    stages {
+
+        stage('Build messageboard application image') {
+            steps {
+                echo "Building application images"
+                dir("application") {
+                    sh "docker compose build"
+                }
+            }
+        }
+
+        stage('Start application stack') {
+            steps {
+                echo "Starting application with Docker Compose"
+                dir("application") {
+                    sh "docker compose up -d"
+                }
+            }
+        }
+
+        stage('Build REST-Assured test image') {
+            steps {
+                echo "Building REST-Assured test image"
+                dir("rest-assured") {
+                    sh "docker build -t ${REST_TEST_IMAGE} ."
+                }
+            }
+        }
+
+        stage('Run Integration Tests') {
+            steps {
+                echo "Running integration tests"
+                sh """
+                    mkdir -p ${ALLURE_ROOT}/integration
+
+                    docker run --rm \
+                      --network ${APP_NETWORK} \
+                      -v ${ALLURE_ROOT}/integration:/tests/target/allure-results \
+                      ${REST_TEST_IMAGE} \
+                      mvn -B -Dtest=IntegrationTest test
+                """
+            }
+        }
+
+        stage('Run E2E API Tests') {
+            steps {
+                echo "Running API end-to-end tests"
+                sh """
+                    mkdir -p ${ALLURE_ROOT}/e2e
+
+                    docker run --rm \
+                      --network ${APP_NETWORK} \
+                      -v ${ALLURE_ROOT}/e2e:/tests/target/allure-results \
+                      ${REST_TEST_IMAGE} \
+                      mvn -B -Dtest=e2eTest test
+                """
+            }
+        }
+
+        stage('Generate Allure Report') {
+            steps {
+                echo "Generating Allure report"
+                sh """
+                    rm -rf ${ALLURE_REPORT}
+                    mkdir -p ${ALLURE_REPORT}
+
+                    allure generate \
+                      ${ALLURE_ROOT}/integration \
+                      ${ALLURE_ROOT}/e2e \
+                      -o ${ALLURE_REPORT} \
+                      --clean
+                """
+            }
+        }
+
+        stage('Send Slack Notification') {
+            steps {
+                echo "Sending results to Slack"
+                sh """
+                    chmod +x scripts/slack.sh
+                    scripts/slack.sh
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Archiving test results"
+            archiveArtifacts artifacts: 'allure-results/**, allure-report/**', fingerprint: true
+
+            echo "Stopping app stack"
+            dir("application") {
+                sh "docker compose down -v"
+            }
+        }
+
+        failure {
+            echo "Pipeline failed, check log"
+        }
+    }
+}
