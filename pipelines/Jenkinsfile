@@ -97,11 +97,17 @@ pipeline {
 
         stage('Send Slack Notification') {
             steps {
-                echo "Sending results to Slack"
-                sh """
-                    chmod +x scripts/slack.sh
-                    scripts/slack.sh
-                """
+                echo "Send results to Slack"
+
+                withCredentials([string(credentialsId: 'SLACK_WEBHOOK', variable: 'SLACK_WEBHOOK_URL')]) {
+                    dir('pipelines/application') {
+                        sh '''
+                            chmod +x scripts/slack.sh
+                            export SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
+                            scripts/slack.sh
+                        '''
+                    }
+                }
             }
         }
     }
