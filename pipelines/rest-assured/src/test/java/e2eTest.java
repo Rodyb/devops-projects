@@ -101,7 +101,6 @@ public class e2eTest {
 
         response.then().statusCode(404);
 
-        // Only assert JSON body if API actually returns JSON
         String contentType = response.getContentType();
         if (contentType != null && contentType.contains("application/json")) {
             response.then().body("error", equalTo("Message not found"));
