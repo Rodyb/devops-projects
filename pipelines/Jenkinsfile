@@ -33,7 +33,7 @@ pipeline {
         stage('Start application stack') {
             steps {
                 echo "Starting application with Docker Compose"
-                dir("application") {
+                dir("pipelines/application") {
                     sh "docker compose up -d"
                 }
             }
