@@ -14,7 +14,7 @@ pipeline {
         stage('Build messageboard application image') {
             steps {
                 echo "Building application images"
-                dir("application") {
+                dir("pipelines/application") {
                     sh "docker compose build"
                 }
             }
@@ -23,7 +23,7 @@ pipeline {
         stage('Start application stack') {
             steps {
                 echo "Starting application with Docker Compose"
-                dir("application") {
+                dir("pipelines/application") {
                     sh "docker compose up -d"
                 }
             }
@@ -32,7 +32,7 @@ pipeline {
         stage('Build REST-Assured test image') {
             steps {
                 echo "Building REST-Assured test image"
-                dir("rest-assured") {
+                dir("pipelines/rest-assured") {
                     sh "docker build -t ${REST_TEST_IMAGE} ."
                 }
             }
