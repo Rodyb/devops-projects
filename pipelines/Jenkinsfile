@@ -43,7 +43,7 @@ pipeline {
             steps {
                 echo "Building REST-Assured test image"
                 dir("pipelines/rest-assured") {
-                    sh "docker build -t ${REST_TEST_IMAGE} ."
+                    sh "docker build -t ${REST_TEST_IMAGE} --no-cache ."
                 }
             }
         }
