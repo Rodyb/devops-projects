@@ -32,6 +32,8 @@ public class IntegrationTest {
 
     @BeforeAll
     static void setup() {
+        RestAssured.filters(new AllureRestAssured());
+
         request = new RequestBuilder(
                 BASE_URL,
                 Map.of("Accept", "application/json")

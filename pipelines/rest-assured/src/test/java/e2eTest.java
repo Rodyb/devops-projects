@@ -19,6 +19,8 @@ public class e2eTest {
 
     @BeforeAll
     static void setup() {
+        RestAssured.filters(new AllureRestAssured());
+
         request = new RequestBuilder(
                 BASE_URL,
                 Map.of("Accept", "application/json")
