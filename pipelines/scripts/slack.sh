@@ -5,8 +5,11 @@ SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is not set}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-SUMMARY_JSON="${WORKSPACE:-$(pwd)/../..}/allure-report/widgets/summary.json"
-
+SUMMARY_JSON="${ALLURE_REPORT_DIR}/widgets/summary.json"
+if [[ -z "$ALLURE_REPORT_DIR" ]]; then
+  echo "ALLURE_REPORT_DIR is not set"
+  exit 1
+fi
 JOB_NAME="${JOB_NAME:-local-run}"
 BUILD_NUMBER="${BUILD_NUMBER:-local}"
 BUILD_URL="${BUILD_URL:-http://localhost}"
