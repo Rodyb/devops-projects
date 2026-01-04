@@ -10,9 +10,6 @@ pipeline {
     environment {
         APP_NETWORK     = "application_messageboard-network"
         REST_TEST_IMAGE = "messageboard-rest-tests"
-
-        ALLURE_ROOT     = "${WORKSPACE}/allure-results"
-        ALLURE_REPORT   = "${WORKSPACE}/allure-report"
     }
 
     stages {
