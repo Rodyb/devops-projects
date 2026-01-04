@@ -118,6 +118,9 @@ pipeline {
           rm -rf allure-report
           mkdir -p allure-report
 
+          # Ensure permissive permissions for container write
+          chmod -R 777 allure-report
+
           docker run --rm \
             -v "$PWD/allure-results:/allure-results" \
             -v "$PWD/allure-report:/allure-report" \
