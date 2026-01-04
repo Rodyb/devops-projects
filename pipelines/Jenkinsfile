@@ -94,7 +94,16 @@ pipeline {
                 """
             }
         }
-
+        stage('Debug Allure Output') {
+            steps {
+                sh """
+          echo "Allure report contents:"
+          ls -la ${ALLURE_REPORT}
+          echo ""
+          ls -la ${ALLURE_REPORT}/widgets || true
+        """
+            }
+        }
         stage('Send Slack Notification') {
             steps {
                 echo "Send results to Slack"
