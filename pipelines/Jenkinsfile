@@ -47,7 +47,7 @@ pipeline {
             }
         }
 
-        stage('Run Integration Tests') {
+        stage('Run integration Tests') {
             steps {
                 script {
                     testExecutor.runTestsAndCollectAllure(
@@ -61,7 +61,7 @@ pipeline {
             }
         }
 
-        stage('Run E2E Tests') {
+        stage('Run e2e tests') {
             steps {
                 script {
                     testExecutor.runTestsAndCollectAllure(
