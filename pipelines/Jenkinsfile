@@ -83,6 +83,7 @@ pipeline {
 
                 sh """
             docker run --rm \
+              --network ${APP_NETWORK} \
               ${REST_TEST_IMAGE} \
               sh -c "
                 mvn -B -Dtest=e2eTest test && \
@@ -92,6 +93,7 @@ pipeline {
         """
             }
         }
+
 
         stage('Generate Allure Report') {
             steps {
