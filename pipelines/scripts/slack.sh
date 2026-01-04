@@ -10,7 +10,7 @@ SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is not set}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Allure report location (relative to repo root)
-SUMMARY_JSON="${SCRIPT_DIR}/../rest-assured/allure-report/widgets/summary.json"
+SUMMARY_JSON="${WORKSPACE:-$(pwd)/../..}/allure-report/widgets/summary.json"
 
 JOB_NAME="${JOB_NAME:-local-run}"
 BUILD_NUMBER="${BUILD_NUMBER:-local}"
