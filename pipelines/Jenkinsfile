@@ -104,7 +104,7 @@ pipeline {
                         sh '''
                             chmod +x slack.sh
                             export SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
-                            slack.sh
+                            ./slack.sh
                         '''
                     }
                 }
