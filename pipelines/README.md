@@ -102,6 +102,6 @@ allure open allure-report
 ## Notes
 
 * The Jenkins pipeline uses the same building blocks, but orchestrates them automatically
-* Test execution happens inside containers to keep things reproducible
+* Test execution happens inside containers 
 * Reporting and notifications are handled separately from test execution
 
