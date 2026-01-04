@@ -110,56 +110,75 @@ pipeline {
                 }
             }
         }
-
-
-
         stage('Generate Allure Report') {
             steps {
-                echo "Generat Allure report"
-                sh """
-                  docker run --rm \
-                    -v ${ALLURE_ROOT}:/tests/allure-results \
-                    -v ${ALLURE_REPORT}:/tests/allure-report \
-                    ${REST_TEST_IMAGE} \
-                    allure generate \
-                      /tests/allure-results/integration \
-                      /tests/allure-results/e2e \
-                      -o /tests/allure-report \
-                      --clean
-                """
+                sh '''
+          echo "=== Generate Allure report using container ==="
+
+          rm -rf allure-report
+          mkdir -p allure-report
+
+          docker run --rm \
+            -v "$PWD/allure-results:/allure-results" \
+            -v "$PWD/allure-report:/allure-report" \
+            frankescobar/allure-docker-service:latest \
+            allure generate /allure-results -o /allure-report --clean
+
+          echo "=== Verify summary.json ==="
+          ls -la allure-report/widgets/summary.json
+        '''
             }
         }
-        stage('Debug Allure Output') {
-            steps {
-                echo "Debugging Allure report locations"
 
-                sh """
-          echo "=== WORKSPACE ==="
-          pwd
-          echo ""
 
-          echo "=== allure-results (root) ==="
-          ls -la ${ALLURE_ROOT} || true
-          echo ""
-          ls -la ${ALLURE_ROOT}/integration || true
-          ls -la ${ALLURE_ROOT}/e2e || true
-          echo ""
 
-          echo "=== allure-report (expected by Slack) ==="
-          ls -la ${ALLURE_REPORT} || true
-          echo ""
-          ls -la ${ALLURE_REPORT}/widgets || true
-          echo ""
-
-          echo "=== pipelines/rest-assured/allure-report (sanity check) ==="
-          ls -la pipelines/rest-assured || true
-          echo ""
-          ls -la pipelines/rest-assured/allure-report || true
-          echo ""
-          ls -la pipelines/rest-assured/allure-report/widgets || true
-        """
-            }
-        }
+//        stage('Generate Allure Report') {
+//            steps {
+//                echo "Generat Allure report"
+//                sh """
+//                  docker run --rm \
+//                    -v ${ALLURE_ROOT}:/tests/allure-results \
+//                    -v ${ALLURE_REPORT}:/tests/allure-report \
+//                    ${REST_TEST_IMAGE} \
+//                    allure generate \
+//                      /tests/allure-results/integration \
+//                      /tests/allure-results/e2e \
+//                      -o /tests/allure-report \
+//                      --clean
+//                """
+//            }
+//        }
+//        stage('Debug Allure Output') {
+//            steps {
+//                echo "Debugging Allure report locations"
+//
+//                sh """
+//          echo "=== WORKSPACE ==="
+//          pwd
+//          echo ""
+//
+//          echo "=== allure-results (root) ==="
+//          ls -la ${ALLURE_ROOT} || true
+//          echo ""
+//          ls -la ${ALLURE_ROOT}/integration || true
+//          ls -la ${ALLURE_ROOT}/e2e || true
+//          echo ""
+//
+//          echo "=== allure-report (expected by Slack) ==="
+//          ls -la ${ALLURE_REPORT} || true
+//          echo ""
+//          ls -la ${ALLURE_REPORT}/widgets || true
+//          echo ""
+//
+//          echo "=== pipelines/rest-assured/allure-report (sanity check) ==="
+//          ls -la pipelines/rest-assured || true
+//          echo ""
+//          ls -la pipelines/rest-assured/allure-report || true
+//          echo ""
+//          ls -la pipelines/rest-assured/allure-report/widgets || true
+//        """
+//            }
+//        }
 
         stage('Send Slack Notification') {
             steps {
