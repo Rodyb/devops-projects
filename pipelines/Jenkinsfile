@@ -102,9 +102,9 @@ pipeline {
                 withCredentials([string(credentialsId: 'SLACK_WEBHOOK', variable: 'SLACK_WEBHOOK_URL')]) {
                     dir('pipelines/scripts') {
                         sh '''
-                            chmod +x scripts/slack.sh
+                            chmod +x slack.sh
                             export SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
-                            scripts/slack.sh
+                            slack.sh
                         '''
                     }
                 }
