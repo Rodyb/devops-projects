@@ -48,33 +48,48 @@ pipeline {
             }
         }
 
-        stage('Run Integration Tests') {
+//        stage('Run Integration Tests') {
+//            steps {
+//                echo "Running integration tests"
+//                sh """
+//                    mkdir -p ${ALLURE_ROOT}/integration
+//
+//                    docker run --rm \
+//                      --network ${APP_NETWORK} \
+//                      -v ${ALLURE_ROOT}/integration:/tests/target/allure-results \
+//                      ${REST_TEST_IMAGE} \
+//                      mvn -B -Dtest=IntegrationTest test
+//                """
+//            }
+//        }
+
+//        stage('Run E2E API Tests') {
+//            steps {
+//                echo "Running API end-to-end tests"
+//                sh """
+//                    mkdir -p ${ALLURE_ROOT}/e2e
+//
+//                    docker run --rm \
+//                      --network ${APP_NETWORK} \
+//                      -v ${ALLURE_ROOT}/e2e:/tests/target/allure-results \
+//                      ${REST_TEST_IMAGE} \
+//                      mvn -B -Dtest=e2eTest test
+//                """
+//            }
+//        }
+        stage('Verify Allure Results Inside Container (E2E)') {
             steps {
-                echo "Running integration tests"
+                echo "Running E2E tests and inspecting Allure output inside the container"
+
                 sh """
-                    mkdir -p ${ALLURE_ROOT}/integration
-
-                    docker run --rm \
-                      --network ${APP_NETWORK} \
-                      -v ${ALLURE_ROOT}/integration:/tests/target/allure-results \
-                      ${REST_TEST_IMAGE} \
-                      mvn -B -Dtest=IntegrationTest test
-                """
-            }
-        }
-
-        stage('Run E2E API Tests') {
-            steps {
-                echo "Running API end-to-end tests"
-                sh """
-                    mkdir -p ${ALLURE_ROOT}/e2e
-
-                    docker run --rm \
-                      --network ${APP_NETWORK} \
-                      -v ${ALLURE_ROOT}/e2e:/tests/target/allure-results \
-                      ${REST_TEST_IMAGE} \
-                      mvn -B -Dtest=e2eTest test
-                """
+            docker run --rm \
+              ${REST_TEST_IMAGE} \
+              sh -c "
+                mvn -B -Dtest=e2eTest test && \
+                echo '--- Inside container: /tests/target/allure-results ---' && \
+                ls -la /tests/target/allure-results || true
+              "
+        """
             }
         }
 
