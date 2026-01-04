@@ -77,36 +77,27 @@ pipeline {
 //                """
 //            }
 //        }
-        stage('Run E2E Tests + Verify Allure Export') {
+        stage('Run API Tests + Verify Allure Output') {
             steps {
-                echo "Running E2E tests and verifying Allure export"
+                echo "Running API tests and verifying Allure results on host"
 
                 sh """
-          echo "=== Create Docker volume ==="
-          docker volume create allure-e2e || true
+          rm -rf ${ALLURE_ROOT}
+          mkdir -p ${ALLURE_ROOT}
 
-          echo ""
-          echo "=== Run tests (write Allure results) ==="
           docker run --rm \
             --network ${APP_NETWORK} \
-            -v allure-e2e:/tests/target/allure-results \
+            -v ${ALLURE_ROOT}:/tests/target/allure-results \
             ${REST_TEST_IMAGE} \
             sh -c "
-              mvn -B -Dtest=e2eTest test && \
-              echo '' && \
-              echo '--- Inside test container ---' && \
+              mvn -B -Dtest=e2eTest test &&
+              echo '--- Inside container ---' &&
               ls -la /tests/target/allure-results
             "
 
-          echo ""
-          echo "=== Verify volume from a clean container ==="
-          docker run --rm \
-            -v allure-e2e:/data \
-            alpine \
-            sh -c "
-              echo '--- Inside verification container ---' && \
-              ls -la /data
-            "
+          echo ''
+          echo '--- On Jenkins host ---'
+          ls -la ${ALLURE_ROOT}
         """
             }
         }
