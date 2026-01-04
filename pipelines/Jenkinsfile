@@ -77,34 +77,40 @@ pipeline {
 //                """
 //            }
 //        }
-        stage('Run Tests and Collect Allure Results') {
+        stage('Run Tests + Collect Allure Results') {
             steps {
-                sh """
-          docker volume rm allure-results || true
-          docker volume create allure-results
+                sh '''
+        set -e
 
-          docker run --rm \\
-            --network ${APP_NETWORK} \\
-            -v allure-results:/tests/target/allure-results \\
-            ${REST_TEST_IMAGE} \\
-            sh -c '
-              mvn -B test &&
-              echo "--- Inside test container ---" &&
-              ls -la /tests/target/allure-results
-            '
+        echo "=== Cleanup ==="
+        docker rm -f rest-tests || true
+        rm -rf allure-results
+        mkdir -p allure-results
 
-          mkdir -p ${WORKSPACE}/allure-results
-          rm -rf ${WORKSPACE}/allure-results/*
+        echo "=== Run tests in container ==="
+        docker run --name rest-tests \
+          --network ${APP_NETWORK} \
+          ${REST_TEST_IMAGE} \
+          mvn -B test
 
-          docker run --rm \\
-            -v allure-results:/data \\
-            -v ${WORKSPACE}/allure-results:/out \\
-            alpine sh -c '
-              echo "--- Copying to Jenkins workspace ---" &&
-              cp -r /data/* /out/ &&
-              ls -la /out
-            '
-        """
+        echo "=== Verify results inside container ==="
+        docker exec rest-tests ls -la /tests/target/allure-results
+
+        echo "=== Copy results out of container ==="
+        docker cp rest-tests:/tests/target/allure-results/. allure-results/
+
+        echo "=== Verify on Jenkins workspace ==="
+        ls -la allure-results
+
+        echo "=== Cleanup container ==="
+        docker rm -f rest-tests
+        '''
+            }
+
+            post {
+                always {
+                    archiveArtifacts artifacts: 'allure-results/**', fingerprint: true
+                }
             }
         }
 
