@@ -1,6 +1,8 @@
 pipeline {
     agent any
-
+    tools {
+        allure 'allure'
+    }
     environment {
         APP_NETWORK     = "application_messageboard-network"
         REST_TEST_IMAGE = "messageboard-rest-tests"
