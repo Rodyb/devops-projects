@@ -227,7 +227,7 @@ pipeline {
                     --network ${APP_NETWORK} \
                     -v "$PWD/allure-results/e2e:/tests/target/allure-results" \
                     ${REST_TEST_IMAGE} \
-                    mvn -B -Dtest=E2ETest test
+                    mvn -B -Dtest=e2eTest test
 
                   docker rm -f rest-tests-e2e
                 '''
