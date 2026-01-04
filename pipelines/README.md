@@ -97,7 +97,20 @@ This will generate a single HTML file and open it in your browser.
 allure generate allure-results -o allure-report --clean 
 allure open allure-report
 ```
----
+
+## Send report to Slack
+
+You can send the report to Slack by running:
+
+```bash
+scripts/slack.sh
+````
+
+If you want to run this locally, make sure a Slack webhook URL is set:
+
+```bash
+export SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
+```
 
 ## Notes
 
