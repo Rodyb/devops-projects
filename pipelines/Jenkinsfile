@@ -157,7 +157,7 @@ pipeline {
     agent any
 
     tools {
-        allure 'allure'   // Jenkins-managed (temporary debt, accepted)
+        allure 'allure'
     }
 
     environment {
@@ -205,9 +205,12 @@ pipeline {
 
                   docker run --name rest-tests-integration \
                     --network ${APP_NETWORK} \
-                    -v "$PWD/allure-results/integration:/tests/target/allure-results" \
                     ${REST_TEST_IMAGE} \
                     mvn -B -Dtest=IntegrationTest test
+
+                  docker cp \
+                    rest-tests-integration:/tests/target/allure-results/. \
+                    allure-results/integration/
 
                   docker rm -f rest-tests-integration
                 '''
@@ -225,9 +228,12 @@ pipeline {
 
                   docker run --name rest-tests-e2e \
                     --network ${APP_NETWORK} \
-                    -v "$PWD/allure-results/e2e:/tests/target/allure-results" \
                     ${REST_TEST_IMAGE} \
                     mvn -B -Dtest=e2eTest test
+
+                  docker cp \
+                    rest-tests-e2e:/tests/target/allure-results/. \
+                    allure-results/e2e/
 
                   docker rm -f rest-tests-e2e
                 '''
