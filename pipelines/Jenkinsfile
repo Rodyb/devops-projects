@@ -93,7 +93,7 @@ pipeline {
           messageboard-rest-tests \
           mvn -B test
 
-        echo "=== Copy Allure results from stopped container ==="
+        echo "=== Copy Allure results from container ==="
         docker cp rest-tests:/tests/target/allure-results/. allure-results/
 
         echo "=== Verify on Jenkins workspace ==="
@@ -107,35 +107,17 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'allure-results/**', fingerprint: true
+
+                    // Jenkins Allure Plugin (THIS is the key line)
+                    allure(
+                            includeProperties: false,
+                            jdk: '',
+                            results: [[path: 'allure-results']]
+                    )
                 }
             }
         }
-        stage('Generate Allure Report') {
-            steps {
-                sh '''
-            set -e
 
-            echo "=== Prepare report directory ==="
-            rm -rf allure-report
-            mkdir -p allure-report
-            chmod -R 777 allure-report
-
-            echo "=== Generate Allure report ==="
-            docker run --rm \
-              -v "$PWD/allure-results:/allure-results:ro" \
-              -v "$PWD/allure-report:/allure-report" \
-              frankescobar/allure-docker-service:latest \
-              sh -c "
-                rm -rf /allure-report/history &&
-                allure generate /allure-results -o /allure-report &&
-                ls -la /allure-report/widgets
-              "
-
-            echo "=== Verify summary ==="
-            test -f allure-report/widgets/summary.json
-        '''
-            }
-        }
 
 
 
