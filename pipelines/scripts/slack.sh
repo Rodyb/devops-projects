@@ -1,15 +1,10 @@
 #!/bin/bash
 set -e
 
-# ==============================
-# CONFIG (HARDCODED FOR NOW)
-# ==============================
 SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is not set}"
 
-# Resolve script directory safely
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Allure report location (relative to repo root)
 SUMMARY_JSON="${WORKSPACE:-$(pwd)/../..}/allure-report/widgets/summary.json"
 
 JOB_NAME="${JOB_NAME:-local-run}"
