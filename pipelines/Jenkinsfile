@@ -96,14 +96,36 @@ pipeline {
         }
         stage('Debug Allure Output') {
             steps {
+                echo "Debugging Allure report locations"
+
                 sh """
-          echo "Allure report contents:"
-          ls -la ${ALLURE_REPORT}
+          echo "=== WORKSPACE ==="
+          pwd
+          echo ""
+
+          echo "=== allure-results (root) ==="
+          ls -la ${ALLURE_ROOT} || true
+          echo ""
+          ls -la ${ALLURE_ROOT}/integration || true
+          ls -la ${ALLURE_ROOT}/e2e || true
+          echo ""
+
+          echo "=== allure-report (expected by Slack) ==="
+          ls -la ${ALLURE_REPORT} || true
           echo ""
           ls -la ${ALLURE_REPORT}/widgets || true
+          echo ""
+
+          echo "=== pipelines/rest-assured/allure-report (sanity check) ==="
+          ls -la pipelines/rest-assured || true
+          echo ""
+          ls -la pipelines/rest-assured/allure-report || true
+          echo ""
+          ls -la pipelines/rest-assured/allure-report/widgets || true
         """
             }
         }
+
         stage('Send Slack Notification') {
             steps {
                 echo "Send results to Slack"
