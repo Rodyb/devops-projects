@@ -89,14 +89,11 @@ pipeline {
 
         echo "=== Run tests in container ==="
         docker run --name rest-tests \
-          --network ${APP_NETWORK} \
-          ${REST_TEST_IMAGE} \
+          --network application_messageboard-network \
+          messageboard-rest-tests \
           mvn -B test
 
-        echo "=== Verify results inside container ==="
-        docker exec rest-tests ls -la /tests/target/allure-results
-
-        echo "=== Copy results out of container ==="
+        echo "=== Copy Allure results from stopped container ==="
         docker cp rest-tests:/tests/target/allure-results/. allure-results/
 
         echo "=== Verify on Jenkins workspace ==="
