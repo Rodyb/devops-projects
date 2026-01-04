@@ -29,8 +29,9 @@ From the repository root:
 cd pipelines/application
 docker compose up -d
 ````
-
 This will build and start the application stack in the background.
+If you navigate to your browser: [http://localhost:5100](http://localhost:5100)
+You will see the application that we are going to test.
 
 To stop and clean up:
 
