@@ -1,8 +1,165 @@
+//pipeline {
+//    agent any
+//    tools {
+//        allure 'allure'
+//    }
+//    environment {
+//        APP_NETWORK     = "application_messageboard-network"
+//        REST_TEST_IMAGE = "messageboard-rest-tests"
+//
+//        ALLURE_ROOT     = "${WORKSPACE}/allure-results"
+//        ALLURE_REPORT   = "${WORKSPACE}/allure-report"
+//    }
+//
+//    stages {
+//
+//        stage('Build messageboard application image') {
+//            steps {
+//                echo "Building application images"
+//                echo "Checking current working directory"
+//
+//                sh '''
+//            echo "PWD:"
+//            pwd
+//
+//            echo ""
+//            echo "Contents:"
+//            ls -la
+//        '''
+//                dir("pipelines/application") {
+//                    sh "docker compose build"
+//                }
+//            }
+//        }
+//
+//        stage('Start application stack') {
+//            steps {
+//                echo "Starting application with Docker Compose"
+//                dir("pipelines/application") {
+//                    sh "docker compose up -d"
+//                }
+//            }
+//        }
+//
+//        stage('Build REST-Assured test image') {
+//            steps {
+//                echo "Building REST-Assured test image"
+//                dir("pipelines/rest-assured") {
+//                    sh "docker build -t ${REST_TEST_IMAGE} ."
+//                }
+//            }
+//        }
+//
+////        stage('Run Integration Tests') {
+////            steps {
+////                echo "Running integration tests"
+////                sh """
+////                    mkdir -p ${ALLURE_ROOT}/integration
+////
+////                    docker run --rm \
+////                      --network ${APP_NETWORK} \
+////                      -v ${ALLURE_ROOT}/integration:/tests/target/allure-results \
+////                      ${REST_TEST_IMAGE} \
+////                      mvn -B -Dtest=IntegrationTest test
+////                """
+////            }
+////        }
+//
+////        stage('Run E2E API Tests') {
+////            steps {
+////                echo "Running API end-to-end tests"
+////                sh """
+////                    mkdir -p ${ALLURE_ROOT}/e2e
+////
+////                    docker run --rm \
+////                      --network ${APP_NETWORK} \
+////                      -v ${ALLURE_ROOT}/e2e:/tests/target/allure-results \
+////                      ${REST_TEST_IMAGE} \
+////                      mvn -B -Dtest=e2eTest test
+////                """
+////            }
+////        }
+//        stage('Run Tests + Collect Allure Results') {
+//            steps {
+//                sh '''
+//                    set -e
+//
+//                    echo "=== Cleanup ==="
+//                    docker rm -f rest-tests || true
+//                    rm -rf allure-results
+//                    mkdir -p allure-results
+//
+//                    echo "=== Run tests in container ==="
+//                    docker run --name rest-tests \
+//                      --network application_messageboard-network \
+//                      messageboard-rest-tests \
+//                      mvn -B test
+//
+//                    echo "=== Copy Allure results from container ==="
+//                    docker cp rest-tests:/tests/target/allure-results/. allure-results/
+//
+//                    echo "=== Verify on Jenkins workspace ==="
+//                    ls -la allure-results
+//
+//                    echo "=== Cleanup container ==="
+//                    docker rm -f rest-tests
+//                    '''
+//            }
+//
+//            post {
+//                always {
+//                    archiveArtifacts artifacts: 'allure-results/**', fingerprint: true
+//
+//                    allure(
+//                            includeProperties: false,
+//                            jdk: '',
+//                            results: [[path: 'allure-results']]
+//                    )
+//                }
+//            }
+//        }
+//
+//        stage('Send Slack Notification') {
+//            steps {
+//                echo "Send results to Slack"
+//
+//                withCredentials([string(credentialsId: 'SLACK_WEBHOOK', variable: 'SLACK_WEBHOOK_URL')]) {
+//                    dir('pipelines/scripts') {
+//                        sh '''
+//                            chmod +x slack.sh
+//                            export SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
+//                            export ALLURE_REPORT_DIR=${ALLURE_REPORT}
+//                            ./slack.sh
+//                        '''
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    post {
+//        always {
+//            echo "Archiving test results"
+//            archiveArtifacts artifacts: 'allure-results/**, allure-report/**', fingerprint: true
+//
+//            echo "Stopping app stack"
+//            dir("pipelines/application") {
+//                sh "docker compose down -v"
+//            }
+//        }
+//
+//        failure {
+//            echo "Pipeline failed, check log"
+//        }
+//    }
+//}
 pipeline {
     agent any
+
     tools {
-        allure 'allure'
+        allure 'allure'   // Jenkins-managed (temporary debt, accepted)
     }
+
     environment {
         APP_NETWORK     = "application_messageboard-network"
         REST_TEST_IMAGE = "messageboard-rest-tests"
@@ -13,176 +170,94 @@ pipeline {
 
     stages {
 
-        stage('Build messageboard application image') {
+        stage('Build application images') {
             steps {
-                echo "Building application images"
-                echo "Checking current working directory"
-
-                sh '''
-            echo "PWD:"
-            pwd
-
-            echo ""
-            echo "Contents:"
-            ls -la
-        '''
                 dir("pipelines/application") {
-                    sh "docker compose build"
+                    sh 'docker compose build'
                 }
             }
         }
 
         stage('Start application stack') {
             steps {
-                echo "Starting application with Docker Compose"
                 dir("pipelines/application") {
-                    sh "docker compose up -d"
+                    sh 'docker compose up -d'
                 }
             }
         }
 
         stage('Build REST-Assured test image') {
             steps {
-                echo "Building REST-Assured test image"
                 dir("pipelines/rest-assured") {
                     sh "docker build -t ${REST_TEST_IMAGE} ."
                 }
             }
         }
 
-//        stage('Run Integration Tests') {
-//            steps {
-//                echo "Running integration tests"
-//                sh """
-//                    mkdir -p ${ALLURE_ROOT}/integration
-//
-//                    docker run --rm \
-//                      --network ${APP_NETWORK} \
-//                      -v ${ALLURE_ROOT}/integration:/tests/target/allure-results \
-//                      ${REST_TEST_IMAGE} \
-//                      mvn -B -Dtest=IntegrationTest test
-//                """
-//            }
-//        }
-
-//        stage('Run E2E API Tests') {
-//            steps {
-//                echo "Running API end-to-end tests"
-//                sh """
-//                    mkdir -p ${ALLURE_ROOT}/e2e
-//
-//                    docker run --rm \
-//                      --network ${APP_NETWORK} \
-//                      -v ${ALLURE_ROOT}/e2e:/tests/target/allure-results \
-//                      ${REST_TEST_IMAGE} \
-//                      mvn -B -Dtest=e2eTest test
-//                """
-//            }
-//        }
-        stage('Run Tests + Collect Allure Results') {
+        stage('Run Integration Tests') {
             steps {
                 sh '''
-        set -e
+                  set -e
 
-        echo "=== Cleanup ==="
-        docker rm -f rest-tests || true
-        rm -rf allure-results
-        mkdir -p allure-results
+                  docker rm -f rest-tests-integration || true
+                  rm -rf allure-results/integration
+                  mkdir -p allure-results/integration
 
-        echo "=== Run tests in container ==="
-        docker run --name rest-tests \
-          --network application_messageboard-network \
-          messageboard-rest-tests \
-          mvn -B test
+                  docker run --name rest-tests-integration \
+                    --network ${APP_NETWORK} \
+                    -v "$PWD/allure-results/integration:/tests/target/allure-results" \
+                    ${REST_TEST_IMAGE} \
+                    mvn -B -Dtest=IntegrationTest test
 
-        echo "=== Copy Allure results from container ==="
-        docker cp rest-tests:/tests/target/allure-results/. allure-results/
-
-        echo "=== Verify on Jenkins workspace ==="
-        ls -la allure-results
-
-        echo "=== Cleanup container ==="
-        docker rm -f rest-tests
-        '''
-            }
-
-            post {
-                always {
-                    archiveArtifacts artifacts: 'allure-results/**', fingerprint: true
-
-                    // Jenkins Allure Plugin (THIS is the key line)
-                    allure(
-                            includeProperties: false,
-                            jdk: '',
-                            results: [[path: 'allure-results']]
-                    )
-                }
+                  docker rm -f rest-tests-integration
+                '''
             }
         }
 
+        stage('Run E2E Tests') {
+            steps {
+                sh '''
+                  set -e
 
+                  docker rm -f rest-tests-e2e || true
+                  rm -rf allure-results/e2e
+                  mkdir -p allure-results/e2e
 
+                  docker run --name rest-tests-e2e \
+                    --network ${APP_NETWORK} \
+                    -v "$PWD/allure-results/e2e:/tests/target/allure-results" \
+                    ${REST_TEST_IMAGE} \
+                    mvn -B -Dtest=E2ETest test
 
+                  docker rm -f rest-tests-e2e
+                '''
+            }
+        }
 
-//        stage('Generate Allure Report') {
-//            steps {
-//                echo "Generat Allure report"
-//                sh """
-//                  docker run --rm \
-//                    -v ${ALLURE_ROOT}:/tests/allure-results \
-//                    -v ${ALLURE_REPORT}:/tests/allure-report \
-//                    ${REST_TEST_IMAGE} \
-//                    allure generate \
-//                      /tests/allure-results/integration \
-//                      /tests/allure-results/e2e \
-//                      -o /tests/allure-report \
-//                      --clean
-//                """
-//            }
-//        }
-//        stage('Debug Allure Output') {
-//            steps {
-//                echo "Debugging Allure report locations"
-//
-//                sh """
-//          echo "=== WORKSPACE ==="
-//          pwd
-//          echo ""
-//
-//          echo "=== allure-results (root) ==="
-//          ls -la ${ALLURE_ROOT} || true
-//          echo ""
-//          ls -la ${ALLURE_ROOT}/integration || true
-//          ls -la ${ALLURE_ROOT}/e2e || true
-//          echo ""
-//
-//          echo "=== allure-report (expected by Slack) ==="
-//          ls -la ${ALLURE_REPORT} || true
-//          echo ""
-//          ls -la ${ALLURE_REPORT}/widgets || true
-//          echo ""
-//
-//          echo "=== pipelines/rest-assured/allure-report (sanity check) ==="
-//          ls -la pipelines/rest-assured || true
-//          echo ""
-//          ls -la pipelines/rest-assured/allure-report || true
-//          echo ""
-//          ls -la pipelines/rest-assured/allure-report/widgets || true
-//        """
-//            }
-//        }
+        stage('Publish Allure Report') {
+            steps {
+                archiveArtifacts artifacts: 'allure-results/**', fingerprint: true
+
+                allure(
+                        includeProperties: false,
+                        jdk: '',
+                        results: [
+                                [path: 'allure-results/integration'],
+                                [path: 'allure-results/e2e']
+                        ]
+                )
+            }
+        }
 
         stage('Send Slack Notification') {
             steps {
-                echo "Send results to Slack"
-
                 withCredentials([string(credentialsId: 'SLACK_WEBHOOK', variable: 'SLACK_WEBHOOK_URL')]) {
                     dir('pipelines/scripts') {
                         sh '''
-                            chmod +x slack.sh
-                            export SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
-                            export ALLURE_REPORT_DIR=${ALLURE_REPORT}
-                            ./slack.sh
+                          chmod +x slack.sh
+                          export SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
+                          export ALLURE_REPORT_DIR="${ALLURE_REPORT}"
+                          ./slack.sh
                         '''
                     }
                 }
@@ -192,17 +267,15 @@ pipeline {
 
     post {
         always {
-            echo "Archiving test results"
             archiveArtifacts artifacts: 'allure-results/**, allure-report/**', fingerprint: true
 
-            echo "Stopping app stack"
             dir("pipelines/application") {
-                sh "docker compose down -v"
+                sh 'docker compose down -v'
             }
         }
 
         failure {
-            echo "Pipeline failed, check log"
+            echo "Pipeline failed"
         }
     }
 }
