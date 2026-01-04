@@ -82,7 +82,7 @@ Allure results will be written directly to the local `rest-assured/allure-result
 
 ---
 
-## Generate an Allure report locally (optional)
+## Generate an Allure report locally 
 
 If you have **Allure CLI** installed:
 You can either create the Allure folder or a singel HTML
