@@ -77,9 +77,9 @@ pipeline {
 //                """
 //            }
 //        }
-        stage('Run API Tests + Verify Allure Output') {
+        stage('Run API Tests (verify Allure output)') {
             steps {
-                echo "Running API tests and verifying Allure results on host"
+                echo "Running API tests and verifying Allure results"
 
                 sh """
           rm -rf ${ALLURE_ROOT}
@@ -90,7 +90,7 @@ pipeline {
             -v ${ALLURE_ROOT}:/tests/target/allure-results \
             ${REST_TEST_IMAGE} \
             sh -c "
-              mvn -B -Dtest=e2eTest test &&
+              mvn -B test &&
               echo '--- Inside container ---' &&
               ls -la /tests/target/allure-results
             "
