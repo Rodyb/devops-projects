@@ -77,42 +77,33 @@ pipeline {
 //                """
 //            }
 //        }
-        stage('Run API Tests and Collect Allure Results') {
+        stage('Run Tests and Collect Allure Results') {
             steps {
-                echo "Running API tests and collecting Allure results"
-
                 sh """
-          echo "Preparing Docker volume"
           docker volume rm allure-results || true
           docker volume create allure-results
 
-          echo "Running tests"
-          docker run --rm \
-            --network ${APP_NETWORK} \
-            -v allure-results:/tests/target/allure-results \
-            ${REST_TEST_IMAGE} \
-            sh -c "
+          docker run --rm \\
+            --network ${APP_NETWORK} \\
+            -v allure-results:/tests/target/allure-results \\
+            ${REST_TEST_IMAGE} \\
+            sh -c '
               mvn -B test &&
-              echo '--- Inside test container ---' &&
+              echo "--- Inside test container ---" &&
               ls -la /tests/target/allure-results
-            "
+            '
 
-          echo "Copying results from Docker volume to Jenkins workspace"
-          rm -rf ${ALLURE_ROOT}
-          mkdir -p ${ALLURE_ROOT}
+          mkdir -p ${WORKSPACE}/allure-results
+          rm -rf ${WORKSPACE}/allure-results/*
 
-          docker run --rm \
-            -v allure-results:/data \
-            -v ${ALLURE_ROOT}:/out \
-            alpine \
-            sh -c "
-              echo '--- Copying files ---' &&
-              ls -la /data &&
-              cp -r /data/* /out/
-            "
-
-          echo '--- On Jenkins host ---'
-          ls -la ${ALLURE_ROOT}
+          docker run --rm \\
+            -v allure-results:/data \\
+            -v ${WORKSPACE}/allure-results:/out \\
+            alpine sh -c '
+              echo "--- Copying to Jenkins workspace ---" &&
+              cp -r /data/* /out/ &&
+              ls -la /out
+            '
         """
             }
         }
