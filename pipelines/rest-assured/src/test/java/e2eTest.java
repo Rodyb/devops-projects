@@ -2,7 +2,8 @@ import base.RequestBuilder;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
-
+import io.qameta.allure.restassured.AllureRestAssured;
+import io.restassured.RestAssured;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
