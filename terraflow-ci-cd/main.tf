@@ -1,4 +1,3 @@
-# Specify the DigitalOcean provider
 terraform {
   required_providers {
     digitalocean = {
@@ -14,6 +13,12 @@ provider "digitalocean" {
 
 variable "digitalocean_token" {
   description = "DigitalOcean API token"
+  type        = string
+  sensitive   = true
+}
+
+variable "jenkins_public_ip" {
+  description = "Public outbound IPv4 address of the Jenkins agent"
   type        = string
 }
 
@@ -59,29 +64,27 @@ resource "digitalocean_droplet" "app_droplet" {
 resource "digitalocean_firewall" "app_firewall" {
   name = "app-firewall"
 
-  # Inbound rules
   inbound_rule {
     protocol         = "tcp"
     port_range       = "22"
-    source_addresses = ["0.0.0.0/0", "::/0"] # Open SSH to all
-  }
-
-  inbound_rule {
-    protocol         = "tcp"
-    port_range       = "80"
-    source_addresses = ["0.0.0.0/0", "::/0"] # Open HTTP
+    source_addresses = ["${var.jenkins_public_ip}/32"]
   }
 
   inbound_rule {
     protocol         = "tcp"
     port_range       = "7071"
-    source_addresses = ["0.0.0.0/0", "::/0"] # Open port 7071 for the application
+    source_addresses = ["${var.jenkins_public_ip}/32"]
   }
 
-  # Outbound rules
   outbound_rule {
-    protocol         = "tcp"
-    port_range       = "all"
+    protocol              = "tcp"
+    port_range            = "all"
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  outbound_rule {
+    protocol              = "udp"
+    port_range            = "53"
     destination_addresses = ["0.0.0.0/0", "::/0"]
   }
 
